@@ -24,7 +24,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -615,7 +614,7 @@ func NewResponse(res *http.Response, withBody bool) (*Response, error) {
 			return nil, err
 		}
 
-		body, err := ioutil.ReadAll(br)
+		body, err := io.ReadAll(br)
 		if err != nil {
 			return nil, err
 		}
@@ -784,7 +783,7 @@ func postData(req *http.Request, logBody bool) (*PostData, error) {
 			}
 			defer p.Close()
 
-			body, err := ioutil.ReadAll(p)
+			body, err := io.ReadAll(p)
 			if err != nil {
 				return nil, err
 			}
@@ -797,7 +796,7 @@ func postData(req *http.Request, logBody bool) (*PostData, error) {
 			})
 		}
 	case "application/x-www-form-urlencoded":
-		body, err := ioutil.ReadAll(br)
+		body, err := io.ReadAll(br)
 		if err != nil {
 			return nil, err
 		}
@@ -816,7 +815,7 @@ func postData(req *http.Request, logBody bool) (*PostData, error) {
 			}
 		}
 	default:
-		body, err := ioutil.ReadAll(br)
+		body, err := io.ReadAll(br)
 		if err != nil {
 			return nil, err
 		}

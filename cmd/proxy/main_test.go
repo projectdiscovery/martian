@@ -19,7 +19,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -70,7 +70,7 @@ func parseURL(t *testing.T, u string) *url.URL {
 }
 
 func TestProxyMain(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", t.Name())
+	tempDir, err := os.MkdirTemp("", t.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +158,7 @@ func TestProxyMain(t *testing.T) {
 		}
 		mc, err := mitm.NewConfig(servCert, servPriv)
 		if err != nil {
-			t.Fatalf("mitm.NewConfig(%p, %q): got error %v, want no error", servCert, servPriv, err)
+			t.Fatalf("mitm.NewConfig(%p, %v): got error %v, want no error", servCert, servPriv, err)
 		}
 		sc := mc.TLS()
 
@@ -224,9 +224,9 @@ func TestProxyMain(t *testing.T) {
 			t.Fatalf("apiClient.Get(%q): got error %v, want no error", caCertURL, err)
 		}
 		defer res.Body.Close()
-		caCert, err := ioutil.ReadAll(res.Body)
+		caCert, err := io.ReadAll(res.Body)
 		if err != nil {
-			t.Fatalf("ioutil.ReadAll(res.Body): got error %v, want no error", err)
+			t.Fatalf("io.ReadAll(res.Body): got error %v, want no error", err)
 		}
 		caCertPool := x509.NewCertPool()
 		caCertPool.AppendCertsFromPEM(caCert)
@@ -248,9 +248,9 @@ func TestProxyMain(t *testing.T) {
 		if got, want := res.StatusCode, http.StatusTeapot; got != want {
 			t.Fatalf("client.Get(%q): got status %d, want %d", testURL, got, want)
 		}
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		if err != nil {
-			t.Fatalf("ioutil.ReadAll(res.Body): got error %v, want no error", err)
+			t.Fatalf("io.ReadAll(res.Body): got error %v, want no error", err)
 		}
 		if got, want := string(body), "茶壺"; got != want {
 			t.Fatalf("modified response body: got %s, want %s", got, want)
@@ -369,9 +369,9 @@ func TestProxyMain(t *testing.T) {
 		if got, want := res.StatusCode, http.StatusTeapot; got != want {
 			t.Errorf("client.Get(%q): got status %d, want %d", testURL, got, want)
 		}
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		if err != nil {
-			t.Fatalf("ioutil.ReadAll(res.Body): got error %v, want no error", err)
+			t.Fatalf("io.ReadAll(res.Body): got error %v, want no error", err)
 		}
 		if got, want := string(body), "茶壺"; got != want {
 			t.Fatalf("modified response body: got %s, want %s", got, want)

@@ -18,11 +18,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"time"
 
 	"github.com/google/martian/v3/log"
+	"github.com/projectdiscovery/gologger"
 )
 
 // Handler configures a trafficshape.Listener.
@@ -166,13 +166,13 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	receivedConfig := &ConfigRequest{}
 
-	body, err := ioutil.ReadAll(req.Body)
+	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(rw, "Error reading request body", 400)
 		return
 	}
 	bodystr := string(body)
-	req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+	req.Body = io.NopCloser(bytes.NewBuffer(body))
 
 	if err := json.NewDecoder(req.Body).Decode(&receivedConfig); err != nil {
 		log.Errorf("Error while parsing the received json: %v", err)
@@ -226,5 +226,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	h.l.Shapes.Unlock()
 
 	rw.WriteHeader(http.StatusOK)
-	io.WriteString(rw, bodystr)
+	if _, err = io.WriteString(rw, bodystr); err != nil {
+		gologger.Debug().Msgf("%s\n", err)
+	}
 }

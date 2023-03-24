@@ -18,6 +18,8 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"net/http"
+
+	"github.com/projectdiscovery/gologger"
 )
 
 type authorityHandler struct {
@@ -38,5 +40,7 @@ func NewAuthorityHandler(ca *x509.Certificate) http.Handler {
 // ServeHTTP writes the CA certificate in PEM format to the client.
 func (h *authorityHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("Content-Type", "application/x-x509-ca-cert")
-	rw.Write(h.cert)
+	if _, err := rw.Write(h.cert); err != nil {
+		gologger.Debug().Msgf("%s\n", err)
+	}
 }

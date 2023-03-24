@@ -18,7 +18,7 @@ package testing
 import (
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -29,6 +29,7 @@ import (
 	"github.com/google/martian/v3"
 	"github.com/google/martian/v3/h2"
 	"github.com/google/martian/v3/mitm"
+	"github.com/projectdiscovery/gologger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
@@ -118,7 +119,9 @@ func New(spf []h2.StreamProcessorFactory) (*Fixture, error) {
 		return nil, fmt.Errorf("creating proxy: %w", err)
 	}
 	go func() {
-		f.proxy.Serve(f.proxyListener)
+		if err := f.proxy.Serve(f.proxyListener); err != nil {
+			gologger.Debug().Msgf("%s\n", err)
+		}
 	}()
 
 	port := lis.Addr().(*net.TCPAddr).Port
@@ -188,7 +191,7 @@ func queryPortServer() int {
 		if _, err := fmt.Fprintf(c, "%d\n", os.Getpid()); err != nil {
 			return 0
 		}
-		buf, err := ioutil.ReadAll(c)
+		buf, err := io.ReadAll(c)
 		if err != nil || len(buf) == 0 {
 			return 0
 		}

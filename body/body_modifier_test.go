@@ -19,7 +19,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"strings"
@@ -53,9 +52,9 @@ func TestBodyModifier(t *testing.T) {
 		t.Errorf("req.Header.Get(%q): got %q, want %q", "Content-Encoding", got, want)
 	}
 
-	got, err := ioutil.ReadAll(req.Body)
+	got, err := io.ReadAll(req.Body)
 	if err != nil {
-		t.Fatalf("ioutil.ReadAll(): got %v, want no error", err)
+		t.Fatalf("io.ReadAll(): got %v, want no error", err)
 	}
 	req.Body.Close()
 
@@ -80,9 +79,9 @@ func TestBodyModifier(t *testing.T) {
 		t.Errorf("res.Header.Get(%q): got %q, want %q", "Content-Encoding", got, want)
 	}
 
-	got, err = ioutil.ReadAll(res.Body)
+	got, err = io.ReadAll(res.Body)
 	if err != nil {
-		t.Fatalf("ioutil.ReadAll(): got %v, want no error", err)
+		t.Fatalf("io.ReadAll(): got %v, want no error", err)
 	}
 	res.Body.Close()
 
@@ -115,9 +114,9 @@ func TestRangeHeaderRequestSingleRange(t *testing.T) {
 		t.Errorf("res.Header.Get(%q): got %q, want %q", "Content-Encoding", got, want)
 	}
 
-	got, err := ioutil.ReadAll(res.Body)
+	got, err := io.ReadAll(res.Body)
 	if err != nil {
-		t.Fatalf("ioutil.ReadAll(): got %v, want no error", err)
+		t.Fatalf("io.ReadAll(): got %v, want no error", err)
 	}
 	res.Body.Close()
 
@@ -151,9 +150,9 @@ func TestRangeHeaderRequestSingleRangeHasAllTheBytes(t *testing.T) {
 		t.Errorf("res.Header.Get(%q): got %q, want %q", "Content-Encoding", got, want)
 	}
 
-	got, err := ioutil.ReadAll(res.Body)
+	got, err := io.ReadAll(res.Body)
 	if err != nil {
-		t.Fatalf("ioutil.ReadAll(): got %v, want no error", err)
+		t.Fatalf("io.ReadAll(): got %v, want no error", err)
 	}
 	res.Body.Close()
 
@@ -237,9 +236,9 @@ func TestRangeHeaderMultipartRange(t *testing.T) {
 		t.Errorf("prt1.Header.Get(%q): got %q, want %q", "Content-Range", got, want)
 	}
 
-	prt1b, err := ioutil.ReadAll(prt1)
+	prt1b, err := io.ReadAll(prt1)
 	if err != nil {
-		t.Errorf("ioutil.Readall(prt1): got %v, want no error", err)
+		t.Errorf("io.Readall(prt1): got %v, want no error", err)
 	}
 
 	if got, want := string(prt1b), "1234"; got != want {
@@ -260,9 +259,9 @@ func TestRangeHeaderMultipartRange(t *testing.T) {
 		t.Errorf("prt2.Header.Get(%q): got %q, want %q", "Content-Range", got, want)
 	}
 
-	prt2b, err := ioutil.ReadAll(prt2)
+	prt2b, err := io.ReadAll(prt2)
 	if err != io.ErrUnexpectedEOF && err != nil {
-		t.Errorf("ioutil.Readall(prt2): got %v, want no error", err)
+		t.Errorf("io.Readall(prt2): got %v, want no error", err)
 	}
 
 	if got, want := string(prt2b), "789"; got != want {
@@ -313,9 +312,9 @@ func TestModifierFromJSON(t *testing.T) {
 		t.Errorf("res.Header.Get(%q): got %v, want %v", "Content-Type", got, want)
 	}
 
-	got, err := ioutil.ReadAll(res.Body)
+	got, err := io.ReadAll(res.Body)
 	if err != nil {
-		t.Fatalf("ioutil.ReadAll(): got %v, want no error", err)
+		t.Fatalf("io.ReadAll(): got %v, want no error", err)
 	}
 	res.Body.Close()
 

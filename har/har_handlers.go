@@ -21,6 +21,7 @@ import (
 	"strconv"
 
 	"github.com/google/martian/v3/log"
+	"github.com/projectdiscovery/gologger"
 )
 
 type exportHandler struct {
@@ -57,7 +58,9 @@ func (h *exportHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	hl := h.logger.Export()
-	json.NewEncoder(rw).Encode(hl)
+	if err := json.NewEncoder(rw).Encode(hl); err != nil {
+		gologger.Debug().Msgf("%s\n", err)
+	}
 }
 
 // ServeHTTP resets the log, which clears its entries.
@@ -69,7 +72,6 @@ func (h *resetHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		log.Errorf("har: method not allowed: %s", req.Method)
 		return
 	}
-
 
 	v, err := parseBoolQueryParam(req.URL.Query(), "return")
 	if err != nil {

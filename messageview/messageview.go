@@ -22,7 +22,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"strings"
@@ -94,11 +93,14 @@ func (mv *MessageView) SnapshotRequest(req *http.Request) error {
 
 	mv.compress = req.Header.Get("Content-Encoding")
 
-	req.Header.WriteSubset(buf, map[string]bool{
+	err := req.Header.WriteSubset(buf, map[string]bool{
 		"Host":              true,
 		"Content-Length":    true,
 		"Transfer-Encoding": true,
 	})
+	if err != nil {
+		return err
+	}
 
 	fmt.Fprint(buf, "\r\n")
 
@@ -111,23 +113,29 @@ func (mv *MessageView) SnapshotRequest(req *http.Request) error {
 		return nil
 	}
 
-	data, err := ioutil.ReadAll(req.Body)
+	data, err := io.ReadAll(req.Body)
 	if err != nil {
 		return err
 	}
-	req.Body.Close()
+	if err := req.Body.Close(); err != nil {
+		return err
+	}
 
 	if mv.chunked {
 		cw := httputil.NewChunkedWriter(buf)
 		cw.Write(data)
-		cw.Close()
+		if err := cw.Close(); err != nil {
+			return err
+		}
 	} else {
-		buf.Write(data)
+		if _, err := buf.Write(data); err != nil {
+			return err
+		}
 	}
 
 	mv.traileroffset = int64(buf.Len())
 
-	req.Body = ioutil.NopCloser(bytes.NewReader(data))
+	req.Body = io.NopCloser(bytes.NewReader(data))
 
 	if req.Trailer != nil {
 		req.Trailer.Write(buf)
@@ -178,7 +186,7 @@ func (mv *MessageView) SnapshotResponse(res *http.Response) error {
 		return nil
 	}
 
-	data, err := ioutil.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		return err
 	}
@@ -186,18 +194,26 @@ func (mv *MessageView) SnapshotResponse(res *http.Response) error {
 
 	if mv.chunked {
 		cw := httputil.NewChunkedWriter(buf)
-		cw.Write(data)
-		cw.Close()
+		if _, err := cw.Write(data); err != nil {
+			return err
+		}
+		if err := cw.Close(); err != nil {
+			return err
+		}
 	} else {
-		buf.Write(data)
+		if _, err := buf.Write(data); err != nil {
+			return err
+		}
 	}
 
 	mv.traileroffset = int64(buf.Len())
 
-	res.Body = ioutil.NopCloser(bytes.NewReader(data))
+	res.Body = io.NopCloser(bytes.NewReader(data))
 
 	if res.Trailer != nil {
-		res.Trailer.Write(buf)
+		if err := res.Trailer.Write(buf); err != nil {
+			return err
+		}
 	} else if mv.chunked {
 		fmt.Fprint(buf, "\r\n")
 	}
@@ -250,7 +266,7 @@ func (mv *MessageView) BodyReader(opts ...Option) (io.ReadCloser, error) {
 	r = io.NewSectionReader(br, mv.bodyoffset, mv.traileroffset-mv.bodyoffset)
 
 	if !conf.decode {
-		return ioutil.NopCloser(r), nil
+		return io.NopCloser(r), nil
 	}
 
 	if mv.chunked {
@@ -266,7 +282,7 @@ func (mv *MessageView) BodyReader(opts ...Option) (io.ReadCloser, error) {
 	case "deflate":
 		return flate.NewReader(r), nil
 	default:
-		return ioutil.NopCloser(r), nil
+		return io.NopCloser(r), nil
 	}
 }
 

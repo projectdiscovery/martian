@@ -44,16 +44,16 @@ var MaxSerialNumber = big.NewInt(0).SetBytes(bytes.Repeat([]byte{255}, 20))
 // Config is a set of configuration values that are used to build TLS configs
 // capable of MITM.
 type Config struct {
-	ca                     *x509.Certificate
-	capriv                 interface{}
-	priv                   *rsa.PrivateKey
-	keyID                  []byte
-	validity               time.Duration
-	org                    string
-	h2Config               *h2.Config
-	getCertificate         func(*tls.ClientHelloInfo) (*tls.Certificate, error)
-	roots                  *x509.CertPool
-	skipVerify             bool
+	ca       *x509.Certificate
+	capriv   interface{}
+	priv     *rsa.PrivateKey
+	keyID    []byte
+	validity time.Duration
+	org      string
+	h2Config *h2.Config
+	// getCertificate         func(*tls.ClientHelloInfo) (*tls.Certificate, error)
+	roots *x509.CertPool
+	// skipVerify             bool
 	handshakeErrorCallback func(*http.Request, error)
 
 	certmu sync.RWMutex
@@ -158,7 +158,7 @@ func (c *Config) SetValidity(validity time.Duration) {
 
 // SkipTLSVerify skips the TLS certification verification check.
 func (c *Config) SkipTLSVerify(skip bool) {
-	c.skipVerify = skip
+	// c.skipVerify = skip
 }
 
 // SetOrganization sets the organization of the certificate.
@@ -194,7 +194,7 @@ func (c *Config) HandshakeErrorCallback(r *http.Request, err error) {
 // the SNI extension in the TLS ClientHello.
 func (c *Config) TLS() *tls.Config {
 	return &tls.Config{
-		InsecureSkipVerify: c.skipVerify,
+		InsecureSkipVerify: true, /*c.skipVerify*/
 		GetCertificate: func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 			if clientHello.ServerName == "" {
 				return nil, errors.New("mitm: SNI not provided, failed to build certificate")
@@ -214,7 +214,7 @@ func (c *Config) TLSForHost(hostname string) *tls.Config {
 		nextProtos = []string{"h2", "http/1.1"}
 	}
 	return &tls.Config{
-		InsecureSkipVerify: c.skipVerify,
+		InsecureSkipVerify: true, /*c.skipVerify*/
 		GetCertificate: func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 			host := clientHello.ServerName
 			if host == "" {

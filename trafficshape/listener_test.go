@@ -17,7 +17,6 @@ package trafficshape
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -89,7 +88,7 @@ func TestListenerRead(t *testing.T) {
 	wg.Done()
 
 	start := time.Now()
-	got, err := ioutil.ReadAll(tsc)
+	got, err := io.ReadAll(tsc)
 	end := time.Now()
 
 	if err != nil {
@@ -157,7 +156,7 @@ func TestListenerWrite(t *testing.T) {
 		// the test is ready to write to it.
 		wg.Wait()
 
-		got, err := ioutil.ReadAll(c)
+		got, err := io.ReadAll(c)
 		if err != nil {
 			t.Fatalf("c.Read(): got %v, want no error", err)
 		}
@@ -333,7 +332,7 @@ func TestListenerReadFrom(t *testing.T) {
 		// the test is ready to write it.
 		wg.Wait()
 
-		got, err := ioutil.ReadAll(c)
+		got, err := io.ReadAll(c)
 		if err != nil {
 			t.Fatalf("c.Read(): got %v, want no error", err)
 		}

@@ -18,7 +18,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -40,6 +39,7 @@ import (
 	"github.com/google/martian/v3/servemux"
 	"github.com/google/martian/v3/trafficshape"
 	"github.com/google/martian/v3/verify"
+	"github.com/projectdiscovery/gologger"
 
 	// side-effect importing to register with JSON API
 	_ "github.com/google/martian/v3/body"
@@ -214,7 +214,11 @@ func (m *Martian) Start() {
 	m.handle("/verify/reset", rh)
 
 	mlog.Infof("mobile: starting Martian proxy on listener")
-	go m.proxy.Serve(m.listener)
+	go func() {
+		if err := m.proxy.Serve(m.listener); err != nil {
+			gologger.Debug().Msgf("%s\n", err)
+		}
+	}()
 
 	// start the API server
 	apiAddr := m.bindAddress(m.APIPort)
@@ -227,12 +231,12 @@ func (m *Martian) Start() {
 			log.Fatal("mobile: APIOverTLS cannot be true without valid cert and key")
 		}
 
-		cerfile, err := ioutil.TempFile("", "martian-api.cert")
+		cerfile, err := os.CreateTemp("", "martian-api.cert")
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		keyfile, err := ioutil.TempFile("", "martian-api.key")
+		keyfile, err := os.CreateTemp("", "martian-api.key")
 		if err != nil {
 			log.Fatal(err)
 		}

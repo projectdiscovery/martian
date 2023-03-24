@@ -28,8 +28,10 @@ import (
 // Contexts are linked to shared session that is used for multiple requests on
 // a single connection.
 type Context struct {
-	session *Session
-	id      string
+	session  *Session
+	id       string
+	lastReq  *http.Request
+	lastResp *http.Response
 
 	mu            sync.RWMutex
 	vals          map[string]interface{}
@@ -148,13 +150,13 @@ func (s *Session) Hijacked() bool {
 
 // setConn resets the underlying connection and bufio.ReadWriter of the
 // session. Used by the proxy when the connection is upgraded to TLS.
-func (s *Session) setConn(conn net.Conn, brw *bufio.ReadWriter) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+// func (s *Session) setConn(conn net.Conn, brw *bufio.ReadWriter) {
+// 	s.mu.Lock()
+// 	defer s.mu.Unlock()
 
-	s.conn = conn
-	s.brw = brw
-}
+// 	s.conn = conn
+// 	s.brw = brw
+// }
 
 // Get takes key and returns the associated value from the session.
 func (s *Session) Get(key string) (interface{}, bool) {
