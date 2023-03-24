@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	syslog "log"
 	"net"
 	"net/http"
 	"net/url"
@@ -37,6 +36,7 @@ import (
 	"github.com/google/martian/v3/proxyutil"
 	"github.com/google/martian/v3/trafficshape"
 	"github.com/projectdiscovery/gologger"
+	stringsutil "github.com/projectdiscovery/utils/strings"
 	"golang.org/x/net/proxy"
 )
 
@@ -65,8 +65,16 @@ func isCloseable(err error) bool {
 	return false
 }
 
+type Miscellaneous struct {
+	// Set "Connection" header on incoming requests when using HTTP/1
+	SetH1ConnectionHeader bool
+	// Strip Proxy-* headers in incoming requests
+	StripProxyHeaders bool
+}
+
 // Proxy is an HTTP proxy with support for TLS MITM and customizable behavior.
 type Proxy struct {
+	Miscellaneous      Miscellaneous
 	TLSPassthroughFunc func(req *http.Request) bool // Callback function to skip mitm
 	roundTripper       http.RoundTripper
 	dialContext        func(context.Context, string, string) (net.Conn, error)
@@ -301,20 +309,21 @@ func (p *Proxy) readRequest(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) 
 		if r != nil {
 			ctx.lastReq = r
 		}
-		if err != nil {
-			// syslog.Printf("closing connection")
-			// if tconn, ok := conn.(*net.TCPConn); ok {
-			// 	if err := tconn.Close(); err != nil {
-			// 		syslog.Printf("got %v while closing connection", err)
-			// 	}
-			// }
-			if urlerr, ok := err.(*url.Error); ok {
-				syslog.Printf("got url error while parsing request %v\n", urlerr)
+
+		// Miscellaneous Changes
+		if p.Miscellaneous.SetH1ConnectionHeader {
+			r.Header.Set("Connection", "close")
+		}
+		if p.Miscellaneous.StripProxyHeaders {
+			for k := range r.Header {
+				if stringsutil.HasPrefixI(k, "Proxy-") {
+					r.Header.Del(k)
+				}
 			}
-			syslog.Printf("\n-------------\nlast successful parsed req and resp before error was\n`%v`\n`%v`\n", ctx.lastReq, ctx.lastResp)
-			xyz := fmt.Sprintf("got `%v` data read from raw conn %v", err, strconv.Quote(buff.String()))
-			syslog.Print(xyz)
-			errc <- fmt.Errorf(xyz)
+		}
+
+		if err != nil {
+			errc <- fmt.Errorf("got `%v` data read from raw conn %v", err, strconv.Quote(buff.String()))
 			return
 		}
 		reqc <- r
@@ -431,11 +440,7 @@ func (p *Proxy) handleConnectRequest(ctx *Context, req *http.Request, session *S
 			brw.Writer.Reset(nconn)
 			brw.Reader.Reset(nconn)
 			return p.handle(ctx, nconn, brw)
-		} else {
-			syslog.Printf("fragment values is %v\n", b[0])
 		}
-
-		syslog.Printf("got connect request but not a tls handshake")
 
 		// Prepend the previously read data to be read again by http.ReadRequest.
 		brw.Reader.Reset(io.MultiReader(bytes.NewReader(b), bytes.NewReader(buf), conn))
@@ -590,8 +595,6 @@ func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error
 	// set request to original request manually, res.Request may be changed in transport.
 	// see https://github.com/google/martian/issues/298
 	res.Request = req
-	// respdump, _ := httputil.DumpResponse(res, false)
-	// syslog.Printf("\n------\n%v\n", string(respdump))
 
 	if err := p.resmod.ModifyResponse(res); err != nil {
 		log.Errorf("martian: error modifying response: %v", err)
