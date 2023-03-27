@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -41,6 +40,7 @@ var (
 	errClientClosedConnection = errors.New("client closed connections")
 	errWebSocketNotSupported  = errors.New("web socket not supported")
 	errClose                  = errors.New("closing connection")
+	errWinWsa                 = errors.New("windows wsarecv/wsasend")
 )
 
 var noop = Noop("martian")
@@ -58,7 +58,13 @@ func isCloseable(err error) bool {
 		return true
 	}
 
+	// ignore client aborted websocket connection (due to websocket)
 	if errors.Is(err, errClientClosedConnection) {
+		return true
+	}
+
+	// Ignore windows wsarecv/wsasend trying to send data on websocket aborted connection
+	if errors.Is(err, errWinWsa) {
 		return true
 	}
 
@@ -321,8 +327,13 @@ func (p *Proxy) readRequest(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) 
 			err = errors.Join(err, errClientClosedConnection)
 		}
 
+		// win trying to wsasend/wsarecv on websocket aborted conn
+		if err != nil && stringsutil.ContainsAnyI(err.Error(), "wsarecv", "wsasend") {
+			err = errors.Join(err, errWinWsa)
+		}
+
 		if err != nil {
-			errc <- errors.Join(err, fmt.Errorf("%s", conn.RemoteAddr()))
+			errc <- err
 			return
 		}
 
@@ -396,7 +407,7 @@ func (p *Proxy) handleConnectRequest(ctx *Context, req *http.Request, session *S
 		res := proxyutil.NewResponse(http.StatusOK, nil, req)
 
 		if err := p.resmod.ModifyResponse(res); err != nil {
-			log.Errorf("martian: error modifying CONNECT response: %v", err)
+			log.Debugf("martian: error modifying CONNECT response: %v", err)
 			proxyutil.Warning(res.Header, err)
 		}
 		if session.Hijacked() {
@@ -405,10 +416,10 @@ func (p *Proxy) handleConnectRequest(ctx *Context, req *http.Request, session *S
 		}
 
 		if err := res.Write(brw); err != nil {
-			log.Errorf("martian: got error while writing response back to client: %v", err)
+			log.Debugf("martian: got error while writing response back to client: %v", err)
 		}
 		if err := brw.Flush(); err != nil {
-			log.Errorf("martian: got error while flushing response back to client: %v", err)
+			log.Debugf("martian: got error while flushing response back to client: %v", err)
 		}
 
 		log.Debugf("martian: completed MITM for connection: %s", req.Host)
@@ -419,7 +430,7 @@ func (p *Proxy) handleConnectRequest(ctx *Context, req *http.Request, session *S
 		)
 		b, err = brw.Peek(1)
 		if err != nil {
-			log.Errorf("martian: error peeking message through CONNECT tunnel to determine type: %v", err)
+			log.Debugf("martian: error peeking message through CONNECT tunnel to determine type: %v", err)
 			return err
 		}
 
@@ -480,11 +491,11 @@ func (p *Proxy) handleConnectRequest(ctx *Context, req *http.Request, session *S
 		}
 
 		if err := res.Write(brw); err != nil {
-			log.Errorf("martian: got error while writing response back to client: %v", err)
+			log.Debugf("martian: got error while writing response back to client: %v", err)
 		}
 		err := brw.Flush()
 		if err != nil {
-			log.Errorf("martian: got error while flushing response back to client: %v", err)
+			log.Debugf("martian: got error while flushing response back to client: %v", err)
 		}
 		return err
 	}
@@ -492,7 +503,7 @@ func (p *Proxy) handleConnectRequest(ctx *Context, req *http.Request, session *S
 	defer cconn.Close()
 
 	if err := p.resmod.ModifyResponse(res); err != nil {
-		log.Errorf("martian: error modifying CONNECT response: %v", err)
+		log.Debugf("martian: error modifying CONNECT response: %v", err)
 		proxyutil.Warning(res.Header, err)
 	}
 	if session.Hijacked() {
@@ -502,10 +513,10 @@ func (p *Proxy) handleConnectRequest(ctx *Context, req *http.Request, session *S
 
 	res.ContentLength = -1
 	if err := res.Write(brw); err != nil {
-		log.Errorf("martian: got error while writing response back to client: %v", err)
+		log.Debugf("martian: got error while writing response back to client: %v", err)
 	}
 	if err := brw.Flush(); err != nil {
-		log.Errorf("martian: got error while flushing response back to client: %v", err)
+		log.Debugf("martian: got error while flushing response back to client: %v", err)
 	}
 
 	cbw := bufio.NewWriter(cconn)
@@ -514,7 +525,7 @@ func (p *Proxy) handleConnectRequest(ctx *Context, req *http.Request, session *S
 
 	copySync := func(w io.Writer, r io.Reader, donec chan<- bool, hostname string) {
 		if _, err := io.Copy(w, r); err != nil && err != io.EOF {
-			log.Errorf("martian: failed to copy CONNECT tunnel for %v: %v", hostname, err)
+			log.Debugf("martian: failed to copy CONNECT tunnel for %v: %v", hostname, err)
 		}
 
 		log.Debugf("martian: CONNECT tunnel finished copying")
@@ -679,7 +690,7 @@ func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error
 	}
 	err = brw.Flush()
 	if err != nil {
-		log.Errorf("martian: got error while flushing response back to client: %v", err)
+		log.Debugf("martian: got error while flushing response back to client: %v", err)
 		if _, ok := err.(*trafficshape.ErrForceClose); ok {
 			closing = errClose
 		}
