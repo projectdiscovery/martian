@@ -20,7 +20,6 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/martian/v3/log"
 )
 
@@ -59,7 +58,7 @@ func (h *exportHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	hl := h.logger.Export()
 	if err := json.NewEncoder(rw).Encode(hl); err != nil {
-		gologger.Debug().Msgf("%s\n", err)
+		// gologger.Debug().Msgf("%s\n", err)
 	}
 }
 
@@ -84,7 +83,7 @@ func (h *resetHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("Content-Type", "application/json; charset=utf-8")
 		hl := h.logger.ExportAndReset()
 		if err := json.NewEncoder(rw).Encode(hl); err != nil {
-			gologger.Debug().Msgf("%s\n", err)
+			// gologger.Debug().Msgf("%s\n", err)
 		}
 	} else {
 		h.logger.Reset()

@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/martian/v3"
 	"github.com/projectdiscovery/martian/v3/log"
 	"github.com/projectdiscovery/martian/v3/parse"
@@ -197,6 +196,6 @@ func (m *Modifier) serveGET(rw http.ResponseWriter, req *http.Request) {
 
 	rw.Header().Set("Content-Type", "application/json")
 	if _, err := rw.Write(m.config); err != nil {
-		gologger.Debug().Msgf("%s\n", err)
+		// gologger.Debug().Msgf("%s\n", err)
 	}
 }

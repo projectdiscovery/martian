@@ -18,7 +18,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/martian/v3"
 	"github.com/projectdiscovery/martian/v3/log"
 )
@@ -95,7 +94,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	if err := json.NewEncoder(rw).Encode(vres); err != nil {
-		gologger.Debug().Msgf("%s\n", err)
+		// gologger.Debug().Msgf("%s\n", err)
 	}
 }
 

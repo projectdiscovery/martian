@@ -30,7 +30,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/martian/v3/log"
 	"github.com/projectdiscovery/martian/v3/martiantest"
 	"github.com/projectdiscovery/martian/v3/mitm"
@@ -263,7 +262,7 @@ func TestIntegrationHTTP100Continue(t *testing.T) {
 	go func() {
 		time.Sleep(time.Second)
 		if _, err := conn.Write([]byte("body content")); err != nil {
-			gologger.Debug().Msgf("%s\n", err)
+			// gologger.Debug().Msgf("%s\n", err)
 		}
 	}()
 

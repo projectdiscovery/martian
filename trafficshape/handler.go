@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/martian/v3/log"
 )
 
@@ -227,6 +226,6 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	rw.WriteHeader(http.StatusOK)
 	if _, err = io.WriteString(rw, bodystr); err != nil {
-		gologger.Debug().Msgf("%s\n", err)
+		// gologger.Debug().Msgf("%s\n", err)
 	}
 }

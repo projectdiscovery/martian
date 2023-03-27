@@ -26,7 +26,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/martian/v3"
 	"github.com/projectdiscovery/martian/v3/h2"
 	"github.com/projectdiscovery/martian/v3/mitm"
@@ -120,7 +119,7 @@ func New(spf []h2.StreamProcessorFactory) (*Fixture, error) {
 	}
 	go func() {
 		if err := f.proxy.Serve(f.proxyListener); err != nil {
-			gologger.Debug().Msgf("%s\n", err)
+			// gologger.Debug().Msgf("%s\n", err)
 		}
 	}()
 

@@ -25,7 +25,6 @@ import (
 	"path"
 	"time"
 
-	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/martian/v3"
 	"github.com/projectdiscovery/martian/v3/api"
 	"github.com/projectdiscovery/martian/v3/cors"
@@ -216,7 +215,7 @@ func (m *Martian) Start() {
 	mlog.Infof("mobile: starting Martian proxy on listener")
 	go func() {
 		if err := m.proxy.Serve(m.listener); err != nil {
-			gologger.Debug().Msgf("%s\n", err)
+			// gologger.Debug().Msgf("%s\n", err)
 		}
 	}()
 
