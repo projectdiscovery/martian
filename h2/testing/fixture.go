@@ -26,14 +26,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/h2"
-	"github.com/google/martian/v3/mitm"
 	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/h2"
+	"github.com/projectdiscovery/martian/v3/mitm"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
-	tspb "github.com/google/martian/v3/h2/testservice"
+	tspb "github.com/projectdiscovery/martian/v3/h2/testservice"
 )
 
 var (

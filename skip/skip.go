@@ -19,8 +19,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/parse"
 )
 
 // RoundTrip is a modifier that skips the request round-trip.
@@ -50,9 +50,10 @@ func (r *RoundTrip) ModifyRequest(req *http.Request) error {
 // roundTripFromJSON builds a skip.RoundTrip from JSON.
 
 // Example JSON:
-// {
-//   "skip.RoundTrip": { }
-// }
+//
+//	{
+//	  "skip.RoundTrip": { }
+//	}
 func roundTripFromJSON(b []byte) (*parse.Result, error) {
 	msg := &roundTripJSON{}
 	if err := json.Unmarshal(b, msg); err != nil {

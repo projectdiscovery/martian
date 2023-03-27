@@ -27,8 +27,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/martian/v3/log"
-	"github.com/google/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3/log"
+	"github.com/projectdiscovery/martian/v3/parse"
 )
 
 func init() {

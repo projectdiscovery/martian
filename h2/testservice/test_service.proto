@@ -16,7 +16,7 @@ syntax = "proto3";
 
 package test_service;
 
-option go_package = "github.com/google/martian/h2/testservice";
+option go_package = "github.com/projectdiscovery/martian/h2/testservice";
 
 message EchoRequest {
   string payload = 1;

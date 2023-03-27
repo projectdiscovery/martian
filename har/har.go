@@ -33,10 +33,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/log"
-	"github.com/google/martian/v3/messageview"
-	"github.com/google/martian/v3/proxyutil"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/log"
+	"github.com/projectdiscovery/martian/v3/messageview"
+	"github.com/projectdiscovery/martian/v3/proxyutil"
 )
 
 // Logger maintains request and response log entries.

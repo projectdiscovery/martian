@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/proxyutil"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/proxyutil"
 )
 
 func TestMarkAPIRequestsWithHeader(t *testing.T) {
@@ -396,10 +396,10 @@ func readAllDataFrames(reader *Reader, id string, t *testing.T) []byte {
 			i++
 		}
 	}
-	
+
 	if !term {
 		t.Fatal("didn't see terminal DataFrame")
 	}
-	
+
 	return res
 }

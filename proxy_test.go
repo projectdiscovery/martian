@@ -30,11 +30,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/martian/v3/log"
-	"github.com/google/martian/v3/martiantest"
-	"github.com/google/martian/v3/mitm"
-	"github.com/google/martian/v3/proxyutil"
 	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/martian/v3/log"
+	"github.com/projectdiscovery/martian/v3/martiantest"
+	"github.com/projectdiscovery/martian/v3/mitm"
+	"github.com/projectdiscovery/martian/v3/proxyutil"
 )
 
 type tempError struct{}
@@ -1322,7 +1322,7 @@ func TestServerClosesConnection(t *testing.T) {
 
 // TestRacyClose checks that creating a proxy, serving from it, and closing
 // it in rapid succession doesn't result in race warnings.
-// See https://github.com/google/martian/issues/286.
+// See https://github.com/projectdiscovery/martian/issues/286.
 func TestRacyClose(t *testing.T) {
 	t.Parallel()
 

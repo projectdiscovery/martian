@@ -18,8 +18,8 @@ import (
 	"encoding/json"
 	"regexp"
 
-	"github.com/google/martian/v3/filter"
-	"github.com/google/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3/filter"
+	"github.com/projectdiscovery/martian/v3/parse"
 )
 
 func init() {
@@ -53,10 +53,11 @@ func NewRegexFilter(r *regexp.Regexp) *URLRegexFilter {
 // as described at https://golang.org/s/re2syntax.
 //
 // Example JSON configuration message:
-// {
-//   "scope": ["request", "response"],
-//   "regex": ".*www.example.com.*"
-// }
+//
+//	{
+//	  "scope": ["request", "response"],
+//	  "regex": ".*www.example.com.*"
+//	}
 func regexFilterFromJSON(b []byte) (*parse.Result, error) {
 	msg := &regexFilterJSON{}
 	if err := json.Unmarshal(b, msg); err != nil {

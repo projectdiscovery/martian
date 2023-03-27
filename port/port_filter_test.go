@@ -19,10 +19,10 @@ import (
 	"net/url"
 	"testing"
 
-	_ "github.com/google/martian/v3/header"
-	"github.com/google/martian/v3/martiantest"
-	"github.com/google/martian/v3/parse"
-	"github.com/google/martian/v3/proxyutil"
+	_ "github.com/projectdiscovery/martian/v3/header"
+	"github.com/projectdiscovery/martian/v3/martiantest"
+	"github.com/projectdiscovery/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3/proxyutil"
 )
 
 func TestFilterModifyRequest(t *testing.T) {

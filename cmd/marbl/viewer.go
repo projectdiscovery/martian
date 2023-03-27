@@ -18,9 +18,10 @@
 // ID is the ID of request or response and TYPE is "request" or "response".
 //
 // Command line arguments:
-//   --file  Path to the .marbl file to view.
-//   --out   Optional, folder where this tool will save request/response bodies.
-//           uses current folder by default.
+//
+//	--file  Path to the .marbl file to view.
+//	--out   Optional, folder where this tool will save request/response bodies.
+//	        uses current folder by default.
 package main
 
 import (
@@ -30,7 +31,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/google/martian/v3/marbl"
+	"github.com/projectdiscovery/martian/v3/marbl"
 )
 
 var (

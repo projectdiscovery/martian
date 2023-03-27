@@ -21,8 +21,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/parse"
 )
 
 // Modifier alters the request URL fields to match the fields of
@@ -75,15 +75,16 @@ func NewModifier(url *url.URL) martian.RequestModifier {
 // modifierFromJSON builds a martianurl.Modifier from JSON.
 //
 // Example modifier JSON:
-// {
-//   "martianurl.Modifier": {
-//     "scope": ["request"],
-//     "scheme": "https",
-//     "host": "www.google.com",
-//     "path": "/proxy",
-//     "query": "testing=true"
-//   }
-// }
+//
+//	{
+//	  "martianurl.Modifier": {
+//	    "scope": ["request"],
+//	    "scheme": "https",
+//	    "host": "www.google.com",
+//	    "path": "/proxy",
+//	    "query": "testing=true"
+//	  }
+//	}
 func modifierFromJSON(b []byte) (*parse.Result, error) {
 	msg := &modifierJSON{}
 	if err := json.Unmarshal(b, msg); err != nil {

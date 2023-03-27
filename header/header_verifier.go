@@ -22,10 +22,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/parse"
-	"github.com/google/martian/v3/proxyutil"
-	"github.com/google/martian/v3/verify"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3/proxyutil"
+	"github.com/projectdiscovery/martian/v3/verify"
 )
 
 const (
@@ -144,14 +144,15 @@ func (v *verifier) ResetResponseVerifications() {
 // verifierFromJSON builds a header.Verifier from JSON.
 //
 // Example JSON:
-// {
-//   "name": "header.Verifier",
-//   "scope": ["request", "result"],
-//   "modifier": {
-//     "name": "Martian-Testing",
-//     "value": "true"
-//   }
-// }
+//
+//	{
+//	  "name": "header.Verifier",
+//	  "scope": ["request", "result"],
+//	  "modifier": {
+//	    "name": "Martian-Testing",
+//	    "value": "true"
+//	  }
+//	}
 func verifierFromJSON(b []byte) (*parse.Result, error) {
 	msg := &verifierJSON{}
 	if err := json.Unmarshal(b, msg); err != nil {

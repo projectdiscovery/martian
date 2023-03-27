@@ -20,9 +20,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/parse"
-	"github.com/google/martian/v3/verify"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3/verify"
 )
 
 func init() {
@@ -105,13 +105,14 @@ func (v *verifier) ResetRequestVerifications() {
 // verifierFromJSON builds a querystring.Verifier from JSON.
 //
 // Example JSON:
-// {
-//   "querystring.Verifier": {
-//     "scope": ["request", "response"],
-//     "name": "Martian-Testing",
-//     "value": "true"
-//   }
-// }
+//
+//	{
+//	  "querystring.Verifier": {
+//	    "scope": ["request", "response"],
+//	    "name": "Martian-Testing",
+//	    "value": "true"
+//	  }
+//	}
 func verifierFromJSON(b []byte) (*parse.Result, error) {
 	msg := &verifierJSON{}
 	if err := json.Unmarshal(b, msg); err != nil {

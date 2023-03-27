@@ -22,9 +22,9 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/parse"
-	"github.com/google/martian/v3/verify"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3/verify"
 )
 
 const (
@@ -97,15 +97,16 @@ func (v *Verifier) ResetRequestVerifications() {
 // verifierFromJSON builds a pingback.Verifier from JSON.
 //
 // Example JSON:
-// {
-//   "pingback.Verifier": {
-//     "scope": ["request"],
-//     "scheme": "https",
-//     "host": "www.google.com",
-//     "path": "/proxy",
-//     "query": "testing=true"
-//   }
-// }
+//
+//	{
+//	  "pingback.Verifier": {
+//	    "scope": ["request"],
+//	    "scheme": "https",
+//	    "host": "www.google.com",
+//	    "path": "/proxy",
+//	    "query": "testing=true"
+//	  }
+//	}
 func verifierFromJSON(b []byte) (*parse.Result, error) {
 	msg := &verifierJSON{}
 	if err := json.Unmarshal(b, msg); err != nil {
