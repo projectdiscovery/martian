@@ -26,11 +26,9 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/google/martian/v3/log"
 	"github.com/google/martian/v3/mitm"
 	"github.com/google/martian/v3/nosigpipe"
 	"github.com/google/martian/v3/proxyutil"
@@ -40,7 +38,12 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-var errClose = errors.New("closing connection")
+var (
+	errClientClosedConnection = errors.New("client closed connections")
+	errWebSocketNotSupported  = errors.New("web socket not supported")
+	errClose                  = errors.New("closing connection")
+)
+
 var noop = Noop("martian")
 
 func isCloseable(err error) bool {
@@ -48,12 +51,15 @@ func isCloseable(err error) bool {
 		return false
 	}
 
-	// if error is a EOF error close connection
-	if strings.Contains(err.Error(), "EOF") {
+	if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
 		return true
 	}
 
-	if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
+	if errors.Is(err, errWebSocketNotSupported) {
+		return true
+	}
+
+	if errors.Is(err, errClientClosedConnection) {
 		return true
 	}
 
@@ -70,6 +76,10 @@ type Miscellaneous struct {
 	SetH1ConnectionHeader bool
 	// Strip Proxy-* headers in incoming requests
 	StripProxyHeaders bool
+	// Ignore web socket errors
+	IgnoreWebSocketError bool
+	// Ignore client closed connections
+	IgnoreClientClosedConnection bool
 }
 
 // Proxy is an HTTP proxy with support for TLS MITM and customizable behavior.
@@ -166,15 +176,15 @@ func (p *Proxy) SetDialContext(dialContext DialFunc) {
 // finishes processing any inflight requests, and closes existing connections without
 // reading anymore requests from them.
 func (p *Proxy) Close() {
-	log.Infof("martian: closing down proxy")
+	gologger.Print().Msgf("martian: closing down proxy")
 
 	close(p.closing)
 
-	log.Infof("martian: waiting for connections to close")
+	gologger.Print().Msgf("martian: waiting for connections to close")
 	p.connsMu.Lock()
 	p.conns.Wait()
 	p.connsMu.Unlock()
-	log.Infof("martian: all connections closed")
+	gologger.Print().Msgf("martian: all connections closed")
 }
 
 // Closing returns whether the proxy is in the closing state.
@@ -228,21 +238,21 @@ func (p *Proxy) Serve(l net.Listener) error {
 					delay = max
 				}
 
-				log.Debugf("martian: temporary error on accept: %v", err)
+				gologger.Print().Msgf("martian: temporary error on accept: %v", err)
 				time.Sleep(delay)
 				continue
 			}
 
 			if errors.Is(err, net.ErrClosed) {
-				log.Debugf("martian: listener closed, returning")
+				gologger.Print().Msgf("martian: listener closed, returning")
 				return err
 			}
 
-			log.Errorf("martian: failed to accept: %v", err)
+			gologger.Error().Msgf("martian: failed to accept: %v", err)
 			return err
 		}
 		delay = 0
-		log.Debugf("martian: accepted connection from %s", conn.RemoteAddr())
+		gologger.Print().Msgf("martian: accepted connection from %s", conn.RemoteAddr())
 
 		if tconn, ok := conn.(*net.TCPConn); ok {
 			if err := tconn.SetKeepAlive(true); err != nil {
@@ -275,13 +285,13 @@ func (p *Proxy) handleLoop(conn net.Conn) {
 
 	s, err := newSession(conn, brw)
 	if err != nil {
-		log.Errorf("martian: failed to create session: %v", err)
+		gologger.Error().Msgf("martian: failed to create session: %v", err)
 		return
 	}
 
 	ctx, err := withSession(s)
 	if err != nil {
-		log.Errorf("martian: failed to create context: %v", err)
+		gologger.Error().Msgf("martian: failed to create context: %v", err)
 		return
 	}
 
@@ -292,7 +302,7 @@ func (p *Proxy) handleLoop(conn net.Conn) {
 		}
 
 		if err := p.handle(ctx, conn, brw); isCloseable(err) {
-			log.Debugf("martian: closing connection: %v", conn.RemoteAddr())
+			gologger.Print().Msgf("martian: closing connection: %v", conn.RemoteAddr())
 			return
 		}
 	}
@@ -310,30 +320,41 @@ func (p *Proxy) readRequest(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) 
 			ctx.lastReq = r
 		}
 
+		hasWebSocket := r != nil && r.Header.Get("upgrade") == "websocket"
+		if hasWebSocket && p.Miscellaneous.IgnoreWebSocketError {
+			err = errWebSocketNotSupported
+		}
+
+		// Ref: https://groups.google.com/g/golang-nuts/c/QDyL1fz8FNQ/m/0yT7NunPGY8J
+		clientClosedConnection := r == nil && errors.Is(err, io.EOF)
+		if clientClosedConnection && p.Miscellaneous.IgnoreClientClosedConnection {
+			err = errors.Join(err, errClientClosedConnection)
+		}
+
+		if err != nil {
+			errc <- errors.Join(err, fmt.Errorf("last data read: %s", strconv.Quote(buff.String())))
+			return
+		}
+
 		// Miscellaneous Changes
-		if p.Miscellaneous.SetH1ConnectionHeader {
+		if p.Miscellaneous.SetH1ConnectionHeader && r.Header != nil {
 			r.Header.Set("Connection", "close")
 		}
-		if p.Miscellaneous.StripProxyHeaders {
+		if p.Miscellaneous.StripProxyHeaders && r.Header != nil {
 			for k := range r.Header {
 				if stringsutil.HasPrefixI(k, "Proxy-") {
 					r.Header.Del(k)
 				}
 			}
 		}
-
-		if err != nil {
-			errc <- fmt.Errorf("got `%v` data read from raw conn %v", err, strconv.Quote(buff.String()))
-			return
-		}
 		reqc <- r
 	}()
 	select {
 	case err := <-errc:
 		if isCloseable(err) {
-			log.Debugf("martian: connection closed prematurely: %v", err)
+			gologger.Print().Msgf("martian: connection closed prematurely: %v", err)
 		} else {
-			log.Errorf("martian: failed to read request: %v", err)
+			gologger.Error().Msgf("martian: failed to read request: %v", err)
 		}
 
 		// TODO: TCPConn.WriteClose() to avoid sending an RST to the client.
@@ -360,57 +381,62 @@ func (p *Proxy) readRequest(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) 
 
 func (p *Proxy) handleConnectRequest(ctx *Context, req *http.Request, session *Session, brw *bufio.ReadWriter, conn net.Conn) error {
 	if err := p.reqmod.ModifyRequest(req); err != nil {
-		log.Errorf("martian: error modifying CONNECT request: %v", err)
+		gologger.Error().Msgf("martian: error modifying CONNECT request: %v", err)
 		proxyutil.Warning(req.Header, err)
 	}
 	if session.Hijacked() {
-		log.Debugf("martian: connection hijacked by request modifier")
+		gologger.Print().Msgf("martian: connection hijacked by request modifier")
 		return nil
 	}
 
-	SetupMitm := false
+	shouldMitm := false
 	// check if proxy should setup mitm for this connection
 	if p.mitm != nil {
-		SetupMitm = true
+		shouldMitm = true
 	}
 
 	if p.TLSPassthroughFunc != nil {
-		SetupMitm = !p.TLSPassthroughFunc(req)
+		shouldMitm = !p.TLSPassthroughFunc(req)
 	}
 
 	// Setup Mitm Connection
-	if SetupMitm {
-		log.Debugf("martian: attempting MITM for connection: %s / %s", req.Host, req.URL.String())
+	if shouldMitm {
+		gologger.Print().Msgf("martian: attempting MITM for connection: %s / %s", req.Host, req.URL.String())
 
-		res := proxyutil.NewResponse(200, nil, req)
+		res := proxyutil.NewResponse(http.StatusOK, nil, req)
 
 		if err := p.resmod.ModifyResponse(res); err != nil {
-			log.Errorf("martian: error modifying CONNECT response: %v", err)
+			gologger.Error().Msgf("martian: error modifying CONNECT response: %v", err)
 			proxyutil.Warning(res.Header, err)
 		}
 		if session.Hijacked() {
-			log.Infof("martian: connection hijacked by response modifier")
+			gologger.Print().Msgf("martian: connection hijacked by response modifier")
 			return nil
 		}
 
 		if err := res.Write(brw); err != nil {
-			log.Errorf("martian: got error while writing response back to client: %v", err)
+			gologger.Error().Msgf("martian: got error while writing response back to client: %v", err)
 		}
 		if err := brw.Flush(); err != nil {
-			log.Errorf("martian: got error while flushing response back to client: %v", err)
+			gologger.Error().Msgf("martian: got error while flushing response back to client: %v", err)
 		}
 
-		log.Debugf("martian: completed MITM for connection: %s", req.Host)
+		gologger.Print().Msgf("martian: completed MITM for connection: %s", req.Host)
 
-		b := make([]byte, 1)
-		if _, err := brw.Read(b); err != nil {
-			log.Errorf("martian: error peeking message through CONNECT tunnel to determine type: %v", err)
+		var (
+			b   []byte
+			err error
+		)
+		b, err = brw.Peek(1)
+		if err != nil {
+			gologger.Error().Msgf("martian: error peeking message through CONNECT tunnel to determine type: %v", err)
+			return err
 		}
 
 		// Drain all of the rest of the buffered data.
 		buf := make([]byte, brw.Reader.Buffered())
 		if _, err := brw.Read(buf); err != nil {
-			gologger.Debug().Msgf("%s\n", err)
+			gologger.Print().Msgf("%s\n", err)
 		}
 
 		// 22 is the TLS handshake.
@@ -420,7 +446,7 @@ func (p *Proxy) handleConnectRequest(ctx *Context, req *http.Request, session *S
 		if b[0] == 22 {
 			// Prepend the previously read data to be read again by
 			// http.ReadRequest.
-			tlsconn := tls.Server(&peekedConn{conn, io.MultiReader(bytes.NewReader(b), bytes.NewReader(buf), conn)}, p.mitm.TLSForHost(req.Host))
+			tlsconn := tls.Server(&peekedConn{conn, io.MultiReader(bytes.NewReader(buf), conn)}, p.mitm.TLSForHost(req.Host))
 
 			if err := tlsconn.Handshake(); err != nil {
 				p.mitm.HandshakeErrorCallback(req, err)
@@ -443,32 +469,32 @@ func (p *Proxy) handleConnectRequest(ctx *Context, req *http.Request, session *S
 		}
 
 		// Prepend the previously read data to be read again by http.ReadRequest.
-		brw.Reader.Reset(io.MultiReader(bytes.NewReader(b), bytes.NewReader(buf), conn))
+		brw.Reader.Reset(io.MultiReader(bytes.NewReader(buf), conn))
 		return p.handle(ctx, conn, brw)
 	}
 
-	log.Debugf("martian: attempting to establish CONNECT tunnel: %s", req.URL.Host)
+	gologger.Print().Msgf("martian: attempting to establish CONNECT tunnel: %s", req.URL.Host)
 	res, cconn, cerr := p.connect(req)
 	if cerr != nil {
-		log.Errorf("martian: failed to CONNECT: %v", cerr)
-		res = proxyutil.NewResponse(502, nil, req)
+		gologger.Error().Msgf("martian: failed to CONNECT: %v", cerr)
+		res = proxyutil.NewResponse(http.StatusBadGateway, nil, req)
 		proxyutil.Warning(res.Header, cerr)
 
 		if err := p.resmod.ModifyResponse(res); err != nil {
-			log.Errorf("martian: error modifying CONNECT response: %v", err)
+			gologger.Error().Msgf("martian: error modifying CONNECT response: %v", err)
 			proxyutil.Warning(res.Header, err)
 		}
 		if session.Hijacked() {
-			log.Infof("martian: connection hijacked by response modifier")
+			gologger.Print().Msgf("martian: connection hijacked by response modifier")
 			return nil
 		}
 
 		if err := res.Write(brw); err != nil {
-			log.Errorf("martian: got error while writing response back to client: %v", err)
+			gologger.Error().Msgf("martian: got error while writing response back to client: %v", err)
 		}
 		err := brw.Flush()
 		if err != nil {
-			log.Errorf("martian: got error while flushing response back to client: %v", err)
+			gologger.Error().Msgf("martian: got error while flushing response back to client: %v", err)
 		}
 		return err
 	}
@@ -476,20 +502,20 @@ func (p *Proxy) handleConnectRequest(ctx *Context, req *http.Request, session *S
 	defer cconn.Close()
 
 	if err := p.resmod.ModifyResponse(res); err != nil {
-		log.Errorf("martian: error modifying CONNECT response: %v", err)
+		gologger.Error().Msgf("martian: error modifying CONNECT response: %v", err)
 		proxyutil.Warning(res.Header, err)
 	}
 	if session.Hijacked() {
-		log.Infof("martian: connection hijacked by response modifier")
+		gologger.Print().Msgf("martian: connection hijacked by response modifier")
 		return nil
 	}
 
 	res.ContentLength = -1
 	if err := res.Write(brw); err != nil {
-		log.Errorf("martian: got error while writing response back to client: %v", err)
+		gologger.Error().Msgf("martian: got error while writing response back to client: %v", err)
 	}
 	if err := brw.Flush(); err != nil {
-		log.Errorf("martian: got error while flushing response back to client: %v", err)
+		gologger.Error().Msgf("martian: got error while flushing response back to client: %v", err)
 	}
 
 	cbw := bufio.NewWriter(cconn)
@@ -498,10 +524,10 @@ func (p *Proxy) handleConnectRequest(ctx *Context, req *http.Request, session *S
 
 	copySync := func(w io.Writer, r io.Reader, donec chan<- bool, hostname string) {
 		if _, err := io.Copy(w, r); err != nil && err != io.EOF {
-			log.Errorf("martian: failed to copy CONNECT tunnel for %v: %v", hostname, err)
+			gologger.Error().Msgf("martian: failed to copy CONNECT tunnel for %v: %v", hostname, err)
 		}
 
-		log.Debugf("martian: CONNECT tunnel finished copying")
+		gologger.Print().Msgf("martian: CONNECT tunnel finished copying")
 		donec <- true
 	}
 
@@ -509,16 +535,16 @@ func (p *Proxy) handleConnectRequest(ctx *Context, req *http.Request, session *S
 	go copySync(cbw, brw, donec, req.Host)
 	go copySync(brw, cbr, donec, req.Host)
 
-	log.Debugf("martian: established CONNECT tunnel, proxying traffic")
+	gologger.Print().Msgf("martian: established CONNECT tunnel, proxying traffic")
 	<-donec
 	<-donec
-	log.Debugf("martian: closed CONNECT tunnel")
+	gologger.Print().Msgf("martian: closed CONNECT tunnel")
 
 	return errClose
 }
 
 func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error {
-	log.Debugf("martian: waiting for request: %v", conn.RemoteAddr())
+	gologger.Print().Msgf("martian: waiting for request: %v", conn.RemoteAddr())
 
 	req, err := p.readRequest(ctx, conn, brw)
 	if err != nil {
@@ -529,7 +555,7 @@ func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error
 	session := ctx.Session()
 	ctx, err = withSession(session)
 	if err != nil {
-		log.Errorf("martian: failed to build new context: %v", err)
+		gologger.Error().Msgf("martian: failed to build new context: %v", err)
 		return err
 	}
 
@@ -560,7 +586,7 @@ func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error
 	// do not alter scheme
 	// req.URL.Scheme = "http"
 	// if session.IsSecure() {
-	// 	log.Infof("martian: forcing HTTPS inside secure session")
+	// 	gologger.Print().Msgf("martian: forcing HTTPS inside secure session")
 	// 	req.URL.Scheme = "https"
 	// }
 
@@ -575,7 +601,7 @@ func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error
 
 	// Not a CONNECT request
 	if err := p.reqmod.ModifyRequest(req); err != nil {
-		log.Errorf("martian: error modifying request: %v", err)
+		gologger.Error().Msgf("martian: error modifying request: %v", err)
 		proxyutil.Warning(req.Header, err)
 	}
 	// if session.Hijacked() {
@@ -585,7 +611,7 @@ func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error
 	// perform the HTTP roundtrip
 	res, err := p.roundTrip(ctx, req)
 	if err != nil {
-		log.Errorf("martian: failed to round trip: %v", err)
+		gologger.Error().Msgf("martian: failed to round trip: %v", err)
 		res = proxyutil.NewResponse(502, nil, req)
 		proxyutil.Warning(res.Header, err)
 	}
@@ -597,17 +623,17 @@ func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error
 	res.Request = req
 
 	if err := p.resmod.ModifyResponse(res); err != nil {
-		log.Errorf("martian: error modifying response: %v", err)
+		gologger.Error().Msgf("martian: error modifying response: %v", err)
 		proxyutil.Warning(res.Header, err)
 	}
 	if session.Hijacked() {
-		log.Infof("martian: connection hijacked by response modifier")
+		gologger.Print().Msgf("martian: connection hijacked by response modifier")
 		return nil
 	}
 
 	var closing error
 	if req.Close || res.Close || p.Closing() {
-		log.Debugf("martian: received close request: %v", req.RemoteAddr)
+		gologger.Print().Msgf("martian: received close request: %v", req.RemoteAddr)
 		res.Close = true
 		closing = errClose
 	}
@@ -642,7 +668,7 @@ func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error
 	// 					ptsconn.Context.Buckets.WriteBucket.SetCapacity(
 	// 						ptsconn.Context.ThrottleContext.Bandwidth)
 	// 				}
-	// 				log.Infof(
+	// 				gologger.Print().Msgf(
 	// 					"trafficshape: Request %s with Range Start: %d matches a Shaping request %s. Enforcing Traffic shaping.",
 	// 					req.URL, rangeStart, urlregex)
 	// 			}
@@ -653,7 +679,7 @@ func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error
 
 	err = res.Write(brw)
 	if err != nil {
-		log.Errorf("martian: got error while writing response back to client: %v", err)
+		gologger.Error().Msgf("martian: got error while writing response back to client: %v", err)
 		if _, ok := err.(*trafficshape.ErrForceClose); ok {
 			closing = errClose
 		}
@@ -664,7 +690,7 @@ func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error
 	}
 	err = brw.Flush()
 	if err != nil {
-		log.Errorf("martian: got error while flushing response back to client: %v", err)
+		gologger.Error().Msgf("martian: got error while flushing response back to client: %v", err)
 		if _, ok := err.(*trafficshape.ErrForceClose); ok {
 			closing = errClose
 		}
@@ -686,7 +712,7 @@ func (c *peekedConn) Read(buf []byte) (int, error) { return c.r.Read(buf) }
 
 func (p *Proxy) roundTrip(ctx *Context, req *http.Request) (*http.Response, error) {
 	if ctx.SkippingRoundTrip() {
-		log.Debugf("martian: skipping round trip")
+		gologger.Print().Msgf("martian: skipping round trip")
 		return proxyutil.NewResponse(200, nil, req), nil
 	}
 
@@ -700,9 +726,9 @@ func (p *Proxy) connect(req *http.Request) (*http.Response, net.Conn, error) {
 	)
 
 	if p.proxyURL != nil {
-		log.Debugf("martian: CONNECT with downstream proxy: %s", p.proxyURL.Host)
+		gologger.Print().Msgf("martian: CONNECT with downstream proxy: %s", p.proxyURL.Host)
 
-		log.Debugf("martian: CONNECT with downstream proxy: %s", p.proxyURL.Host)
+		gologger.Print().Msgf("martian: CONNECT with downstream proxy: %s", p.proxyURL.Host)
 
 		var dialer proxy.Dialer
 		dialer, err = proxy.FromURL(
@@ -717,7 +743,7 @@ func (p *Proxy) connect(req *http.Request) (*http.Response, net.Conn, error) {
 
 		conn, err = dialer.Dial("tcp", req.URL.Host)
 	} else {
-		log.Debugf("martian: CONNECT to host directly: %s", req.URL.Host)
+		gologger.Print().Msgf("martian: CONNECT to host directly: %s", req.URL.Host)
 		conn, err = p.dialContext(req.Context(), "tcp", req.URL.Host)
 	}
 
@@ -725,5 +751,5 @@ func (p *Proxy) connect(req *http.Request) (*http.Response, net.Conn, error) {
 		return nil, nil, err
 	}
 
-	return proxyutil.NewResponse(200, nil, req), conn, nil
+	return proxyutil.NewResponse(http.StatusOK, nil, req), conn, nil
 }
