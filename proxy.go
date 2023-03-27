@@ -25,7 +25,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strconv"
 	"sync"
 	"time"
 
@@ -309,12 +308,7 @@ func (p *Proxy) readRequest(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) 
 	reqc := make(chan *http.Request, 1)
 	errc := make(chan error, 1)
 	go func() {
-		var buff bytes.Buffer
-		tmpreader := bufio.NewReader(io.TeeReader(brw.Reader, &buff))
-		r, err := http.ReadRequest(tmpreader)
-		if r != nil {
-			ctx.lastReq = r
-		}
+		r, err := http.ReadRequest(brw.Reader)
 
 		hasWebSocket := r != nil && r.Header.Get("upgrade") == "websocket"
 		if hasWebSocket && p.Miscellaneous.IgnoreWebSocketError {
@@ -328,7 +322,7 @@ func (p *Proxy) readRequest(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) 
 		}
 
 		if err != nil {
-			errc <- errors.Join(err, fmt.Errorf("last data read: %s", strconv.Quote(buff.String())))
+			errc <- errors.Join(err, fmt.Errorf("%s", conn.RemoteAddr()))
 			return
 		}
 
@@ -611,7 +605,6 @@ func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error
 		res = proxyutil.NewResponse(502, nil, req)
 		proxyutil.Warning(res.Header, err)
 	}
-	ctx.lastResp = res
 	defer res.Body.Close()
 
 	// set request to original request manually, res.Request may be changed in transport.

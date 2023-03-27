@@ -28,10 +28,8 @@ import (
 // Contexts are linked to shared session that is used for multiple requests on
 // a single connection.
 type Context struct {
-	session  *Session
-	id       string
-	lastReq  *http.Request
-	lastResp *http.Response
+	session *Session
+	id      string
 
 	mu            sync.RWMutex
 	vals          map[string]interface{}
