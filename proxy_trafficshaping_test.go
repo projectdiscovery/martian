@@ -3,7 +3,7 @@ package martian
 import (
 	"bufio"
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/martian/v3/log"
-	"github.com/google/martian/v3/martiantest"
-	"github.com/google/martian/v3/trafficshape"
+	"github.com/projectdiscovery/martian/v3/log"
+	"github.com/projectdiscovery/martian/v3/martiantest"
+	"github.com/projectdiscovery/martian/v3/trafficshape"
 )
 
 // Tests that sending data of length 600 bytes with max bandwidth of 100 bytes/s takes
@@ -85,7 +85,7 @@ func TestConstantThrottleAndClose(t *testing.T) {
 
 	tm.ResponseFunc(func(res *http.Response) {
 		res.StatusCode = http.StatusOK
-		res.Body = ioutil.NopCloser(bytes.NewBufferString(testString))
+		res.Body = io.NopCloser(bytes.NewBufferString(testString))
 	})
 
 	p.SetRequestModifier(tm)
@@ -114,7 +114,7 @@ func TestConstantThrottleAndClose(t *testing.T) {
 		if err != nil {
 			t.Fatalf("http.ReadResponse(): got %v, want no error", err)
 		}
-		body, _ := ioutil.ReadAll(res.Body)
+		body, _ := io.ReadAll(res.Body)
 		bodystr := string(body)
 		c1 <- bodystr
 	}()
@@ -211,7 +211,7 @@ func TestSleepAndClose(t *testing.T) {
 
 	tm.ResponseFunc(func(res *http.Response) {
 		res.StatusCode = http.StatusOK
-		res.Body = ioutil.NopCloser(bytes.NewBufferString(testString))
+		res.Body = io.NopCloser(bytes.NewBufferString(testString))
 	})
 
 	p.SetRequestModifier(tm)
@@ -240,7 +240,7 @@ func TestSleepAndClose(t *testing.T) {
 		if err != nil {
 			t.Fatalf("http.ReadResponse(): got %v, want no error", err)
 		}
-		body, _ := ioutil.ReadAll(res.Body)
+		body, _ := io.ReadAll(res.Body)
 		bodystr := string(body)
 		c1 <- bodystr
 	}()
@@ -329,7 +329,7 @@ func TestConstantThrottleAndCloseByteRange(t *testing.T) {
 
 	tm.ResponseFunc(func(res *http.Response) {
 		res.StatusCode = http.StatusPartialContent
-		res.Body = ioutil.NopCloser(bytes.NewBufferString(testString))
+		res.Body = io.NopCloser(bytes.NewBufferString(testString))
 		res.Header.Set("Content-Range", "bytes 500-1100/1100")
 	})
 
@@ -360,7 +360,7 @@ func TestConstantThrottleAndCloseByteRange(t *testing.T) {
 			t.Fatalf("http.ReadResponse(): got %v, want no error", err)
 		}
 
-		body, _ := ioutil.ReadAll(res.Body)
+		body, _ := io.ReadAll(res.Body)
 		bodystr := string(body)
 		c1 <- bodystr
 	}()
@@ -447,7 +447,7 @@ func TestMaxBandwidth(t *testing.T) {
 
 	tm.ResponseFunc(func(res *http.Response) {
 		res.StatusCode = http.StatusOK
-		res.Body = ioutil.NopCloser(bytes.NewBufferString(testString))
+		res.Body = io.NopCloser(bytes.NewBufferString(testString))
 	})
 
 	p.SetRequestModifier(tm)
@@ -484,7 +484,7 @@ func TestMaxBandwidth(t *testing.T) {
 				t.Fatalf("http.ReadResponse(): got %v, want no error", err)
 			}
 
-			body, _ := ioutil.ReadAll(res.Body)
+			body, _ := io.ReadAll(res.Body)
 			bodystr := string(body)
 
 			if i != 0 {
@@ -586,7 +586,7 @@ func TestConcurrentResponseActions(t *testing.T) {
 	tm.ResponseFunc(func(res *http.Response) {
 		cr := res.Request.Header.Get("ContentRange")
 		res.StatusCode = http.StatusOK
-		res.Body = ioutil.NopCloser(bytes.NewBufferString(testString))
+		res.Body = io.NopCloser(bytes.NewBufferString(testString))
 		if cr != "" {
 			res.StatusCode = http.StatusPartialContent
 			res.Header.Set("Content-Range", cr)
@@ -622,7 +622,7 @@ func TestConcurrentResponseActions(t *testing.T) {
 			t.Fatalf("http.ReadResponse(): got %v, want no error", err)
 		}
 
-		body, _ := ioutil.ReadAll(res.Body)
+		body, _ := io.ReadAll(res.Body)
 		bodystr := string(body)
 		c1 <- bodystr
 	}()
@@ -647,7 +647,7 @@ func TestConcurrentResponseActions(t *testing.T) {
 			t.Fatalf("http.ReadResponse(): got %v, want no error", err)
 		}
 
-		body, _ := ioutil.ReadAll(res.Body)
+		body, _ := io.ReadAll(res.Body)
 		bodystr := string(body)
 		c2 <- bodystr
 	}()

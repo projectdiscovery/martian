@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -31,10 +30,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/martian/v3/log"
-	"github.com/google/martian/v3/martiantest"
-	"github.com/google/martian/v3/mitm"
-	"github.com/google/martian/v3/proxyutil"
+	"github.com/projectdiscovery/martian/v3/log"
+	"github.com/projectdiscovery/martian/v3/martiantest"
+	"github.com/projectdiscovery/martian/v3/mitm"
+	"github.com/projectdiscovery/martian/v3/proxyutil"
 )
 
 type tempError struct{}
@@ -261,9 +260,9 @@ func TestIntegrationHTTP100Continue(t *testing.T) {
 	}
 
 	go func() {
-		select {
-		case <-time.After(time.Second):
-			conn.Write([]byte("body content"))
+		time.Sleep(time.Second)
+		if _, err := conn.Write([]byte("body content")); err != nil {
+			// gologger.Debug().Msgf("%s\n", err)
 		}
 	}()
 
@@ -277,9 +276,9 @@ func TestIntegrationHTTP100Continue(t *testing.T) {
 		t.Fatalf("res.StatusCode: got %d, want %d", got, want)
 	}
 
-	got, err := ioutil.ReadAll(res.Body)
+	got, err := io.ReadAll(res.Body)
 	if err != nil {
-		t.Fatalf("ioutil.ReadAll(): got %v, want no error", err)
+		t.Fatalf("io.ReadAll(): got %v, want no error", err)
 	}
 
 	if want := []byte("body content"); !bytes.Equal(got, want) {
@@ -1313,7 +1312,7 @@ func TestServerClosesConnection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("http.ReadResponse(): got %v, want no error", err)
 	}
-	_, err = ioutil.ReadAll(res.Body)
+	_, err = io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("error while ReadAll: %v", err)
 	}
@@ -1322,7 +1321,7 @@ func TestServerClosesConnection(t *testing.T) {
 
 // TestRacyClose checks that creating a proxy, serving from it, and closing
 // it in rapid succession doesn't result in race warnings.
-// See https://github.com/google/martian/issues/286.
+// See https://github.com/projectdiscovery/martian/issues/286.
 func TestRacyClose(t *testing.T) {
 	t.Parallel()
 

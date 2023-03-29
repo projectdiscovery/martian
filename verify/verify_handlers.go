@@ -18,8 +18,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/log"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/log"
 )
 
 // Handler is an http.Handler that returns the request and response
@@ -93,7 +93,9 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	json.NewEncoder(rw).Encode(vres)
+	if err := json.NewEncoder(rw).Encode(vres); err != nil {
+		// gologger.Debug().Msgf("%s\n", err)
+	}
 }
 
 func appendError(vres *verifyResponse, err error) {

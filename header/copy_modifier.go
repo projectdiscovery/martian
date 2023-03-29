@@ -18,10 +18,10 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/log"
-	"github.com/google/martian/v3/parse"
-	"github.com/google/martian/v3/proxyutil"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/log"
+	"github.com/projectdiscovery/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3/proxyutil"
 )
 
 func init() {
@@ -66,13 +66,14 @@ func NewCopyModifier(from, to string) martian.RequestResponseModifier {
 // copyModifierFromJSON builds a copy modifier from JSON.
 //
 // Example JSON:
-// {
-//   "header.Copy": {
-//     "scope": ["request", "response"],
-//     "from": "Original-Header",
-//     "to": "Copy-Header"
-//   }
-// }
+//
+//	{
+//	  "header.Copy": {
+//	    "scope": ["request", "response"],
+//	    "from": "Original-Header",
+//	    "to": "Copy-Header"
+//	  }
+//	}
 func copyModifierFromJSON(b []byte) (*parse.Result, error) {
 	msg := &copyModifierJSON{}
 	if err := json.Unmarshal(b, msg); err != nil {

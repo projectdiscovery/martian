@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,14 +17,13 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/google/martian/v3/martiantest"
-	"github.com/google/martian/v3/proxyutil"
+	"github.com/projectdiscovery/martian/v3/martiantest"
+	"github.com/projectdiscovery/martian/v3/proxyutil"
 )
 
 func TestModifyRequest(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("example.com/test", func(rw http.ResponseWriter, req *http.Request) {
-		return
 	})
 
 	f := NewFilter(mux)
@@ -74,7 +73,7 @@ func TestModifyRequest(t *testing.T) {
 func TestModifyResponse(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("example.com/restest", func(rw http.ResponseWriter, req *http.Request) {
-		return
+
 	})
 
 	f := NewFilter(mux)

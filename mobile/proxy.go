@@ -18,7 +18,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -26,36 +25,36 @@ import (
 	"path"
 	"time"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/api"
-	"github.com/google/martian/v3/cors"
-	"github.com/google/martian/v3/cybervillains"
-	"github.com/google/martian/v3/fifo"
-	"github.com/google/martian/v3/har"
-	"github.com/google/martian/v3/httpspec"
-	mlog "github.com/google/martian/v3/log"
-	"github.com/google/martian/v3/marbl"
-	"github.com/google/martian/v3/martianhttp"
-	"github.com/google/martian/v3/mitm"
-	"github.com/google/martian/v3/servemux"
-	"github.com/google/martian/v3/trafficshape"
-	"github.com/google/martian/v3/verify"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/api"
+	"github.com/projectdiscovery/martian/v3/cors"
+	"github.com/projectdiscovery/martian/v3/cybervillains"
+	"github.com/projectdiscovery/martian/v3/fifo"
+	"github.com/projectdiscovery/martian/v3/har"
+	"github.com/projectdiscovery/martian/v3/httpspec"
+	mlog "github.com/projectdiscovery/martian/v3/log"
+	"github.com/projectdiscovery/martian/v3/marbl"
+	"github.com/projectdiscovery/martian/v3/martianhttp"
+	"github.com/projectdiscovery/martian/v3/mitm"
+	"github.com/projectdiscovery/martian/v3/servemux"
+	"github.com/projectdiscovery/martian/v3/trafficshape"
+	"github.com/projectdiscovery/martian/v3/verify"
 
 	// side-effect importing to register with JSON API
-	_ "github.com/google/martian/v3/body"
-	_ "github.com/google/martian/v3/cookie"
-	_ "github.com/google/martian/v3/failure"
-	_ "github.com/google/martian/v3/header"
-	_ "github.com/google/martian/v3/martianurl"
-	_ "github.com/google/martian/v3/method"
-	_ "github.com/google/martian/v3/pingback"
-	_ "github.com/google/martian/v3/port"
-	_ "github.com/google/martian/v3/priority"
-	_ "github.com/google/martian/v3/querystring"
-	_ "github.com/google/martian/v3/skip"
-	_ "github.com/google/martian/v3/stash"
-	_ "github.com/google/martian/v3/static"
-	_ "github.com/google/martian/v3/status"
+	_ "github.com/projectdiscovery/martian/v3/body"
+	_ "github.com/projectdiscovery/martian/v3/cookie"
+	_ "github.com/projectdiscovery/martian/v3/failure"
+	_ "github.com/projectdiscovery/martian/v3/header"
+	_ "github.com/projectdiscovery/martian/v3/martianurl"
+	_ "github.com/projectdiscovery/martian/v3/method"
+	_ "github.com/projectdiscovery/martian/v3/pingback"
+	_ "github.com/projectdiscovery/martian/v3/port"
+	_ "github.com/projectdiscovery/martian/v3/priority"
+	_ "github.com/projectdiscovery/martian/v3/querystring"
+	_ "github.com/projectdiscovery/martian/v3/skip"
+	_ "github.com/projectdiscovery/martian/v3/stash"
+	_ "github.com/projectdiscovery/martian/v3/static"
+	_ "github.com/projectdiscovery/martian/v3/status"
 )
 
 // Martian is a wrapper for the initialized Martian proxy
@@ -214,7 +213,11 @@ func (m *Martian) Start() {
 	m.handle("/verify/reset", rh)
 
 	mlog.Infof("mobile: starting Martian proxy on listener")
-	go m.proxy.Serve(m.listener)
+	go func() {
+		if err := m.proxy.Serve(m.listener); err != nil {
+			// gologger.Debug().Msgf("%s\n", err)
+		}
+	}()
 
 	// start the API server
 	apiAddr := m.bindAddress(m.APIPort)
@@ -227,12 +230,12 @@ func (m *Martian) Start() {
 			log.Fatal("mobile: APIOverTLS cannot be true without valid cert and key")
 		}
 
-		cerfile, err := ioutil.TempFile("", "martian-api.cert")
+		cerfile, err := os.CreateTemp("", "martian-api.cert")
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		keyfile, err := ioutil.TempFile("", "martian-api.key")
+		keyfile, err := os.CreateTemp("", "martian-api.key")
 		if err != nil {
 			log.Fatal(err)
 		}

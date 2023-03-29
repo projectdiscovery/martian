@@ -15,8 +15,8 @@
 package marbl
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"net"
 	"net/http"
 	"strconv"

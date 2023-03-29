@@ -20,9 +20,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/log"
-	"github.com/google/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/log"
+	"github.com/projectdiscovery/martian/v3/parse"
 )
 
 func init() {
@@ -61,10 +61,11 @@ type modifierJSON struct {
 // a headerModifier and an error.
 //
 // Example JSON configuration message:
-// {
-//  "scope": ["request", "result"],
-//  "name": "noop-name",
-// }
+//
+//	{
+//	 "scope": ["request", "result"],
+//	 "name": "noop-name",
+//	}
 func modifierFromJSON(b []byte) (*parse.Result, error) {
 	msg := &modifierJSON{}
 	if err := json.Unmarshal(b, msg); err != nil {
@@ -75,4 +76,3 @@ func modifierFromJSON(b []byte) (*parse.Result, error) {
 
 	return parse.NewResult(modifier, msg.Scope)
 }
-

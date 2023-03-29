@@ -21,12 +21,12 @@ import (
 	"compress/gzip"
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/url"
 	"sync/atomic"
 
 	"github.com/golang/snappy"
-	"github.com/google/martian/v3/h2"
+	"github.com/projectdiscovery/martian/v3/h2"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 )
@@ -201,7 +201,9 @@ func (a *adapter) Data(data []byte, streamEnded bool) error {
 				return nil
 			}
 			data := make([]byte, a.length)
-			a.buffer.Read(data)
+			if _, err := a.buffer.Read(data); err != nil {
+				return err
+			}
 
 			if a.compressed {
 				switch a.encoding {
@@ -220,7 +222,7 @@ func (a *adapter) Data(data []byte, streamEnded bool) error {
 					}
 				case Snappy:
 					var err error
-					data, err = ioutil.ReadAll(snappy.NewReader(bytes.NewReader(data)))
+					data, err = io.ReadAll(snappy.NewReader(bytes.NewReader(data)))
 					if err != nil {
 						return fmt.Errorf("uncompressing snappy: %w", err)
 					}
@@ -314,12 +316,22 @@ func (e *emitter) Message(data []byte, streamEnded bool) error {
 	var buf bytes.Buffer
 	// Writes the compression status.
 	if e.adapter.compressed {
-		buf.WriteByte(1)
+		if err := buf.WriteByte(1); err != nil {
+			return err
+		}
 	} else {
-		buf.WriteByte(0)
+		if err := buf.WriteByte(0); err != nil {
+			return err
+		}
 	}
-	binary.Write(&buf, binary.BigEndian, uint32(len(data))) // Writes the length of the data.
-	buf.Write(data)                                         // Writes the actual data.
+	// Writes the length of the data
+	if err := binary.Write(&buf, binary.BigEndian, uint32(len(data))); err != nil {
+		return err
+	}
+	// Writes the actual data
+	if _, err := buf.Write(data); err != nil {
+		return err
+	}
 	return e.sink.Data(buf.Bytes(), streamEnded)
 }
 
@@ -328,7 +340,7 @@ func gunzip(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ioutil.ReadAll(r)
+	return io.ReadAll(r)
 }
 
 func deflate(data []byte) (_ []byte, rerr error) {
@@ -338,5 +350,5 @@ func deflate(data []byte) (_ []byte, rerr error) {
 			rerr = err
 		}
 	}()
-	return ioutil.ReadAll(r)
+	return io.ReadAll(r)
 }

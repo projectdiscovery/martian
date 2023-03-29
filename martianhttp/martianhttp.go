@@ -18,14 +18,14 @@ package martianhttp
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"sync"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/log"
-	"github.com/google/martian/v3/parse"
-	"github.com/google/martian/v3/verify"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/log"
+	"github.com/projectdiscovery/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3/verify"
 )
 
 var noop = martian.Noop("martianhttp.Modifier")
@@ -160,7 +160,7 @@ func (m *Modifier) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (m *Modifier) servePOST(rw http.ResponseWriter, req *http.Request) {
-	body, err := ioutil.ReadAll(req.Body)
+	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(rw, err.Error(), 500)
 		log.Errorf("martianhttp: error reading request body: %v", err)
@@ -195,5 +195,7 @@ func (m *Modifier) serveGET(rw http.ResponseWriter, req *http.Request) {
 	defer m.mu.RUnlock()
 
 	rw.Header().Set("Content-Type", "application/json")
-	rw.Write(m.config)
+	if _, err := rw.Write(m.config); err != nil {
+		// gologger.Debug().Msgf("%s\n", err)
+	}
 }

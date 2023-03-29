@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/martian/v3/log"
+	"github.com/projectdiscovery/martian/v3/log"
 )
 
 // DefaultBitrate represents the bitrate that will be for all url regexs for which a shape
@@ -235,8 +235,12 @@ func (l *Listener) Accept() (net.Conn, error) {
 
 	if tconn, ok := oc.(*net.TCPConn); ok {
 		log.Debugf("trafficshape: setting keep-alive for TCP connection")
-		tconn.SetKeepAlive(true)
-		tconn.SetKeepAlivePeriod(3 * time.Minute)
+		if err := tconn.SetKeepAlive(true); err != nil {
+			return nil, err
+		}
+		if err := tconn.SetKeepAlivePeriod(3 * time.Minute); err != nil {
+			return nil, err
+		}
 	}
 	return l.GetTrafficShapedConn(oc), nil
 }

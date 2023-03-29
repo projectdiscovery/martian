@@ -23,9 +23,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/parse"
-	"github.com/google/martian/v3/verify"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3/verify"
 )
 
 func init() {
@@ -76,12 +76,13 @@ func (v *verifier) ResetRequestVerifications() {
 // verifierFromJSON builds a failure.Verifier from JSON
 //
 // Example JSON:
-// {
-//   "failure.Verifier": {
-//     "scope": ["request", "response"],
-//     "message": "Request passed a filter it should not have"
-//   }
-// }
+//
+//	{
+//	  "failure.Verifier": {
+//	    "scope": ["request", "response"],
+//	    "message": "Request passed a filter it should not have"
+//	  }
+//	}
 func verifierFromJSON(b []byte) (*parse.Result, error) {
 	msg := &verifierJSON{}
 	if err := json.Unmarshal(b, msg); err != nil {

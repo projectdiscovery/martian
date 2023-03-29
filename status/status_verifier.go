@@ -19,9 +19,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/parse"
-	"github.com/google/martian/v3/verify"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3/verify"
 )
 
 const errFormat = "response(%s) status code verify failure: got %d, want %d"
@@ -83,12 +83,13 @@ func (v *Verifier) ResetResponseVerifications() {
 // verifierFromJSON builds a status.Verifier from JSON.
 //
 // Example JSON:
-// {
-//   "status.Verifier": {
-//     "scope": ["response"],
-//     "statusCode": 401
-//   }
-// }
+//
+//	{
+//	  "status.Verifier": {
+//	    "scope": ["response"],
+//	    "statusCode": 401
+//	  }
+//	}
 func verifierFromJSON(b []byte) (*parse.Result, error) {
 	msg := &verifierJSON{}
 	if err := json.Unmarshal(b, msg); err != nil {

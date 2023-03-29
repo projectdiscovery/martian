@@ -18,8 +18,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/google/martian/v3/parse"
-	"github.com/google/martian/v3/proxyutil"
+	"github.com/projectdiscovery/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3/proxyutil"
 )
 
 func TestNewHeaderModifier(t *testing.T) {

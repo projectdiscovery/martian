@@ -21,8 +21,8 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/parse"
 )
 
 var (
@@ -196,21 +196,22 @@ func (pg *Group) ModifyResponse(res *http.Response) error {
 // groupFromJSON builds a priority.Group from JSON.
 //
 // Example JSON:
-// {
-//   "priority.Group": {
-//     "scope": ["request", "response"],
-//     "modifiers": [
-//       {
-//         "priority": 100, // Will run first.
-//         "modifier": { ... },
-//       },
-//       {
-//         "priority": 0, // Will run last.
-//         "modifier": { ... },
-//       }
-//     ]
-//   }
-// }
+//
+//	{
+//	  "priority.Group": {
+//	    "scope": ["request", "response"],
+//	    "modifiers": [
+//	      {
+//	        "priority": 100, // Will run first.
+//	        "modifier": { ... },
+//	      },
+//	      {
+//	        "priority": 0, // Will run last.
+//	        "modifier": { ... },
+//	      }
+//	    ]
+//	  }
+//	}
 func groupFromJSON(b []byte) (*parse.Result, error) {
 	msg := &groupJSON{}
 	if err := json.Unmarshal(b, msg); err != nil {

@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -39,7 +38,7 @@ func NewResponse(code int, body io.Reader, req *http.Request) *http.Response {
 
 	rc, ok := body.(io.ReadCloser)
 	if !ok {
-		rc = ioutil.NopCloser(body)
+		rc = io.NopCloser(body)
 	}
 
 	res := &http.Response{
@@ -101,4 +100,3 @@ func GetRangeStart(res *http.Response) int64 {
 	}
 	return num
 }
-

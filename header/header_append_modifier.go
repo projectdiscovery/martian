@@ -18,9 +18,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/parse"
-	"github.com/google/martian/v3/proxyutil"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3/proxyutil"
 )
 
 func init() {
@@ -31,11 +31,11 @@ type appendModifier struct {
 	name, value string
 }
 
-type appendModifierJSON struct {
-	Name  string               `json:"name"`
-	Value string               `json:"value"`
-	Scope []parse.ModifierType `json:"scope"`
-}
+// type appendModifierJSON struct {
+// 	Name  string               `json:"name"`
+// 	Value string               `json:"value"`
+// 	Scope []parse.ModifierType `json:"scope"`
+// }
 
 // ModifyRequest appends the header at name with value to the request.
 func (m *appendModifier) ModifyRequest(req *http.Request) error {
@@ -61,11 +61,12 @@ func NewAppendModifier(name, value string) martian.RequestResponseModifier {
 // an appendModifier and an error.
 //
 // Example JSON configuration message:
-// {
-//  "scope": ["request", "result"],
-//  "name": "X-Martian",
-//  "value": "true"
-// }
+//
+//	{
+//	 "scope": ["request", "result"],
+//	 "name": "X-Martian",
+//	 "value": "true"
+//	}
 func appendModifierFromJSON(b []byte) (*parse.Result, error) {
 	msg := &modifierJSON{}
 	if err := json.Unmarshal(b, msg); err != nil {

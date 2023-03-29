@@ -20,7 +20,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/google/martian/v3/log"
+	"github.com/projectdiscovery/martian/v3/log"
 )
 
 type exportHandler struct {
@@ -57,7 +57,9 @@ func (h *exportHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	hl := h.logger.Export()
-	json.NewEncoder(rw).Encode(hl)
+	if err := json.NewEncoder(rw).Encode(hl); err != nil {
+		// gologger.Debug().Msgf("%s\n", err)
+	}
 }
 
 // ServeHTTP resets the log, which clears its entries.
@@ -70,7 +72,6 @@ func (h *resetHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-
 	v, err := parseBoolQueryParam(req.URL.Query(), "return")
 	if err != nil {
 		log.Errorf("har: invalid value for return param: %s", err)
@@ -81,7 +82,9 @@ func (h *resetHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if v {
 		rw.Header().Set("Content-Type", "application/json; charset=utf-8")
 		hl := h.logger.ExportAndReset()
-		json.NewEncoder(rw).Encode(hl)
+		if err := json.NewEncoder(rw).Encode(hl); err != nil {
+			// gologger.Debug().Msgf("%s\n", err)
+		}
 	} else {
 		h.logger.Reset()
 		rw.WriteHeader(http.StatusNoContent)

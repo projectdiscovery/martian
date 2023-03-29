@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/parse"
 )
 
 type statusModifier struct {
@@ -57,12 +57,13 @@ func NewModifier(statusCode int) martian.ResponseModifier {
 // modifierFromJSON builds a status.Modifier from JSON.
 //
 // Example JSON:
-// {
-//   "status.Modifier": {
-//     "scope": ["response"],
-//     "statusCode": 401
-//   }
-// }
+//
+//	{
+//	  "status.Modifier": {
+//	    "scope": ["response"],
+//	    "statusCode": 401
+//	  }
+//	}
 func modifierFromJSON(b []byte) (*parse.Result, error) {
 	msg := &statusJSON{}
 	if err := json.Unmarshal(b, msg); err != nil {

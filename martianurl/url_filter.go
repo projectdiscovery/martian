@@ -18,13 +18,12 @@ import (
 	"encoding/json"
 	"net/url"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/filter"
-	"github.com/google/martian/v3/log"
-	"github.com/google/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3/filter"
+	"github.com/projectdiscovery/martian/v3/log"
+	"github.com/projectdiscovery/martian/v3/parse"
 )
 
-var noop = martian.Noop("url.Filter")
+// var noop = martian.Noop("url.Filter")
 
 func init() {
 	parse.Register("url.Filter", filterFromJSON)
@@ -61,15 +60,16 @@ func NewFilter(u *url.URL) *Filter {
 // type of modifier.
 //
 // Example JSON configuration message:
-// {
-//   "scheme": "https",
-//   "host": "example.com",
-//   "path": "/foo/bar",
-//   "query": "q=value",
-//   "scope": ["request", "response"],
-//   "modifier": { ... }
-//   "else": { ... }
-// }
+//
+//	{
+//	  "scheme": "https",
+//	  "host": "example.com",
+//	  "path": "/foo/bar",
+//	  "query": "q=value",
+//	  "scope": ["request", "response"],
+//	  "modifier": { ... }
+//	  "else": { ... }
+//	}
 func filterFromJSON(b []byte) (*parse.Result, error) {
 	msg := &filterJSON{}
 	if err := json.Unmarshal(b, msg); err != nil {

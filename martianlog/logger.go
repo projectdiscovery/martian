@@ -23,10 +23,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/log"
-	"github.com/google/martian/v3/messageview"
-	"github.com/google/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/log"
+	"github.com/projectdiscovery/martian/v3/messageview"
+	"github.com/projectdiscovery/martian/v3/parse"
 )
 
 // Logger is a modifier that logs requests and responses.
@@ -113,7 +113,9 @@ func (l *Logger) ModifyRequest(req *http.Request) error {
 		return err
 	}
 
-	io.Copy(b, r)
+	if _, err := io.Copy(b, r); err != nil {
+		return err
+	}
 
 	fmt.Fprintln(b, "")
 	fmt.Fprintln(b, strings.Repeat("-", 80))
@@ -163,7 +165,9 @@ func (l *Logger) ModifyResponse(res *http.Response) error {
 		return err
 	}
 
-	io.Copy(b, r)
+	if _, err := io.Copy(b, r); err != nil {
+		return err
+	}
 
 	fmt.Fprintln(b, "")
 	fmt.Fprintln(b, strings.Repeat("-", 80))
@@ -176,13 +180,14 @@ func (l *Logger) ModifyResponse(res *http.Response) error {
 // loggerFromJSON builds a logger from JSON.
 //
 // Example JSON:
-// {
-//   "log.Logger": {
-//     "scope": ["request", "response"],
-//		 "headersOnly": true,
-//		 "decode": true
-//   }
-// }
+//
+//	{
+//	  "log.Logger": {
+//	    "scope": ["request", "response"],
+//			 "headersOnly": true,
+//			 "decode": true
+//	  }
+//	}
 func loggerFromJSON(b []byte) (*parse.Result, error) {
 	msg := &loggerJSON{}
 	if err := json.Unmarshal(b, msg); err != nil {

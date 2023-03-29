@@ -19,8 +19,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/parse"
 )
 
 func init() {
@@ -60,11 +60,12 @@ func NewModifier(key, value string) martian.RequestModifier {
 // a querystring.modifier and an error.
 //
 // Example JSON:
-// {
-//  "name": "param",
-//  "value": "true",
-//  "scope": ["request", "response"]
-// }
+//
+//	{
+//	 "name": "param",
+//	 "value": "true",
+//	 "scope": ["request", "response"]
+//	}
 func modifierFromJSON(b []byte) (*parse.Result, error) {
 	msg := &modifierJSON{}
 

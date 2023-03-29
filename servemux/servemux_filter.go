@@ -19,11 +19,10 @@ package servemux
 import (
 	"net/http"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/filter"
+	"github.com/projectdiscovery/martian/v3/filter"
 )
 
-var noop = martian.Noop("mux.Filter")
+// var noop = martian.Noop("mux.Filter")
 
 // Filter is a modifier that executes mod if a pattern is matched in mux.
 type Filter struct {

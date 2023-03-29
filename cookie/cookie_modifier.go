@@ -20,9 +20,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/log"
-	"github.com/google/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/log"
+	"github.com/projectdiscovery/martian/v3/parse"
 )
 
 func init() {
@@ -73,17 +73,18 @@ func NewModifier(cookie *http.Cookie) martian.RequestResponseModifier {
 // CookieModifier and an error.
 //
 // Example JSON Configuration message:
-// {
-//   "name": "Martian-Cookie",
-//   "value": "some value",
-//   "path": "/some/path",
-//   "domain": "example.com",
-//   "expires": "2025-04-12T23:20:50.52Z", // RFC 3339
-//   "secure": true,
-//   "httpOnly": false,
-//   "maxAge": 86400,
-//   "scope": ["request", "result"]
-// }
+//
+//	{
+//	  "name": "Martian-Cookie",
+//	  "value": "some value",
+//	  "path": "/some/path",
+//	  "domain": "example.com",
+//	  "expires": "2025-04-12T23:20:50.52Z", // RFC 3339
+//	  "secure": true,
+//	  "httpOnly": false,
+//	  "maxAge": 86400,
+//	  "scope": ["request", "result"]
+//	}
 func modifierFromJSON(b []byte) (*parse.Result, error) {
 	msg := &modifierJSON{}
 	if err := json.Unmarshal(b, msg); err != nil {

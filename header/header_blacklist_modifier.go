@@ -18,9 +18,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/parse"
-	"github.com/google/martian/v3/proxyutil"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3/proxyutil"
 )
 
 func init() {
@@ -70,10 +70,11 @@ func NewBlacklistModifier(names ...string) martian.RequestResponseModifier {
 // a blacklistModifier and an error.
 //
 // Example JSON configuration message:
-// {
-//   "names": ["X-Header", "Y-Header"],
-//   "scope": ["request", "result"]
-// }
+//
+//	{
+//	  "names": ["X-Header", "Y-Header"],
+//	  "scope": ["request", "result"]
+//	}
 func blacklistModifierFromJSON(b []byte) (*parse.Result, error) {
 	msg := &blacklistModifierJSON{}
 	if err := json.Unmarshal(b, msg); err != nil {

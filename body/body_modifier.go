@@ -21,15 +21,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
 	"strconv"
 	"strings"
 
-	"github.com/google/martian/v3/log"
-	"github.com/google/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3/log"
+	"github.com/projectdiscovery/martian/v3/parse"
 )
 
 func init() {
@@ -63,11 +62,12 @@ func NewModifier(b []byte, contentType string) *Modifier {
 // body.Modifier and an error.
 //
 // Example JSON Configuration message:
-// {
-//   "scope": ["request", "response"],
-//   "contentType": "text/plain",
-//   "body": "c29tZSBkYXRhIHdpdGggACBhbmQg77u/" // Base64 encoded body
-// }
+//
+//	{
+//	  "scope": ["request", "response"],
+//	  "contentType": "text/plain",
+//	  "body": "c29tZSBkYXRhIHdpdGggACBhbmQg77u/" // Base64 encoded body
+//	}
 func modifierFromJSON(b []byte) (*parse.Result, error) {
 	msg := &modifierJSON{}
 	if err := json.Unmarshal(b, msg); err != nil {
@@ -89,7 +89,7 @@ func (m *Modifier) ModifyRequest(req *http.Request) error {
 	req.Header.Del("Content-Encoding")
 
 	req.ContentLength = int64(len(m.body))
-	req.Body = ioutil.NopCloser(bytes.NewReader(m.body))
+	req.Body = io.NopCloser(bytes.NewReader(m.body))
 
 	return nil
 }
@@ -113,7 +113,7 @@ func (m *Modifier) ModifyResponse(res *http.Response) error {
 	// If no range request header is present, return the body as the response body.
 	if res.Request.Header.Get("Range") == "" {
 		res.ContentLength = int64(len(m.body))
-		res.Body = ioutil.NopCloser(bytes.NewReader(m.body))
+		res.Body = io.NopCloser(bytes.NewReader(m.body))
 
 		return nil
 	}
@@ -159,7 +159,7 @@ func (m *Modifier) ModifyResponse(res *http.Response) error {
 		end := ranges[0][1]
 		seg := m.body[start : end+1]
 		res.ContentLength = int64(len(seg))
-		res.Body = ioutil.NopCloser(bytes.NewReader(seg))
+		res.Body = io.NopCloser(bytes.NewReader(seg))
 		res.Header.Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, len(m.body)))
 
 		return nil
@@ -168,7 +168,9 @@ func (m *Modifier) ModifyResponse(res *http.Response) error {
 	// Multipart range request.
 	var mpbody bytes.Buffer
 	mpw := multipart.NewWriter(&mpbody)
-	mpw.SetBoundary(m.boundary)
+	if err := mpw.SetBoundary(m.boundary); err != nil {
+		return err
+	}
 
 	for _, rng := range ranges {
 		start, end := rng[0], rng[1]
@@ -190,7 +192,7 @@ func (m *Modifier) ModifyResponse(res *http.Response) error {
 	mpw.Close()
 
 	res.ContentLength = int64(len(mpbody.Bytes()))
-	res.Body = ioutil.NopCloser(bytes.NewReader(mpbody.Bytes()))
+	res.Body = io.NopCloser(bytes.NewReader(mpbody.Bytes()))
 	res.Header.Set("Content-Type", fmt.Sprintf("multipart/byteranges; boundary=%s", m.boundary))
 
 	return nil

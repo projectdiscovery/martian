@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -33,8 +32,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/martian/v3"
-	"github.com/google/martian/v3/parse"
+	"github.com/projectdiscovery/martian/v3"
+	"github.com/projectdiscovery/martian/v3/parse"
 )
 
 // Modifier is a martian.RequestResponseModifier that routes reqeusts to rootPath
@@ -170,7 +169,7 @@ func (s *Modifier) ModifyResponse(res *http.Response) error {
 			return err
 		}
 
-		res.Body = ioutil.NopCloser(bytes.NewReader(seg))
+		res.Body = io.NopCloser(bytes.NewReader(seg))
 		res.Header.Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, info.Size()))
 
 		return nil
@@ -208,7 +207,7 @@ func (s *Modifier) ModifyResponse(res *http.Response) error {
 	mpw.Close()
 
 	res.ContentLength = int64(len(mpbody.Bytes()))
-	res.Body = ioutil.NopCloser(bytes.NewReader(mpbody.Bytes()))
+	res.Body = io.NopCloser(bytes.NewReader(mpbody.Bytes()))
 	res.Header.Set("Content-Type", fmt.Sprintf("multipart/byteranges; boundary=%s", mpw.Boundary()))
 
 	return nil

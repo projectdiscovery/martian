@@ -1,4 +1,5 @@
-//+build darwin,go1.9
+//go:build darwin && go1.9
+// +build darwin,go1.9
 
 package nosigpipe
 
@@ -6,7 +7,7 @@ import (
 	"net"
 	"syscall"
 
-	"github.com/google/martian/v3/log"
+	"github.com/projectdiscovery/martian/v3/log"
 )
 
 // IgnoreSIGPIPE prevents SIGPIPE from being raised on TCP sockets when remote hangs up

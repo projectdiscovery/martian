@@ -31,8 +31,8 @@ Martian Proxy added support for Go modules since v3.0.0.  If you use a Go versio
 ### Installation
 Martian Proxy can be installed using `go install`
 
-    go get github.com/google/martian/ && \
-    go install github.com/google/martian/cmd/proxy
+    go get github.com/projectdiscovery/martian/ && \
+    go install github.com/projectdiscovery/martian/cmd/proxy
 
 ### Start the Proxy
 Assuming you've installed Martian, running the proxy is as simple as
@@ -51,7 +51,7 @@ By default, Martian will be running on port 8080, and the Martian API will be ru
 
 ### Logging
 For logging of requests and responses a [logging
-modifier](https://github.com/google/martian/wiki/Modifier-Reference#logging) is
+modifier](https://github.com/projectdiscovery/martian/wiki/Modifier-Reference#logging) is
 available or [HAR](http://www.softwareishard.com/blog/har-12-spec/) logs are
 available if the `-har` flag is used.
 
@@ -98,7 +98,7 @@ Let's break down the parts of this message.
 * `[package.Type]`: The package.Type of the modifier that you want to use. In
   this case, it's "header.Modifier", which is the name of the modifier that
   sets headers (to learn more about the `header.Modifier`, please
-  refer to the [modifier reference](https://github.com/google/martian/wiki/Modifier-Reference)).
+  refer to the [modifier reference](https://github.com/projectdiscovery/martian/wiki/Modifier-Reference)).
 
 * `[package.Type].scope`: Indicates whether to apply to the modifier to
   requests, responses or both. This can be an array containing "request",
@@ -223,7 +223,7 @@ these different types of interactions:
 
 Modifiers, filters and groups all implement `RequestModifier`,
 `ResponseModifier` or `RequestResponseModifier` (defined in
-[`martian.go`](https://github.com/google/martian/blob/master/martian.go)).
+[`martian.go`](https://github.com/projectdiscovery/martian/blob/master/martian.go)).
 
 ```go
 ModifyRequest(req *http.Request) error
