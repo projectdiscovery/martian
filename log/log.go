@@ -16,9 +16,12 @@
 package log
 
 import (
-	"fmt"
-	"log"
 	"sync"
+
+	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/gologger/formatter"
+	"github.com/projectdiscovery/gologger/levels"
+	"github.com/projectdiscovery/gologger/writer"
 )
 
 const (
@@ -31,6 +34,9 @@ const (
 	// Debug is a level that logs error, info, and debug logs.
 	Debug
 )
+
+// GologgerInstance is actual logger used internally
+var GologgerInstance *gologger.Logger
 
 // Default log level is Error.
 var (
@@ -48,11 +54,13 @@ type Logger interface {
 // SetLogger changes the default logger. This must be called very first,
 // before interacting with rest of the martian package. Changing it at
 // runtime is not supported.
+// Deprecated : Use GologgerInstance to configure logger
 func SetLogger(l Logger) {
 	currLogger = l
 }
 
 // SetLevel sets the global log level.
+// Deprecated : Use GologgerInstance to configure logger
 func SetLevel(l int) {
 	lock.Lock()
 	defer lock.Unlock()
@@ -78,49 +86,20 @@ func Errorf(format string, args ...interface{}) {
 type logger struct{}
 
 func (l *logger) Infof(format string, args ...interface{}) {
-	lock.Lock()
-	defer lock.Unlock()
-
-	if level < Info {
-		return
-	}
-
-	msg := fmt.Sprintf("INFO: %s", format)
-	if len(args) > 0 {
-		msg = fmt.Sprintf(msg, args...)
-	}
-
-	log.Println(msg)
+	GologgerInstance.Info().Msgf(format, args...)
 }
 
 func (l *logger) Debugf(format string, args ...interface{}) {
-	lock.Lock()
-	defer lock.Unlock()
-
-	if level < Debug {
-		return
-	}
-
-	msg := fmt.Sprintf("DEBUG: %s", format)
-	if len(args) > 0 {
-		msg = fmt.Sprintf(msg, args...)
-	}
-
-	log.Println(msg)
+	GologgerInstance.Debug().Msgf(format, args...)
 }
 
 func (l *logger) Errorf(format string, args ...interface{}) {
-	lock.Lock()
-	defer lock.Unlock()
+	GologgerInstance.Error().Msgf(format, args...)
+}
 
-	if level < Error {
-		return
-	}
-
-	msg := fmt.Sprintf("ERROR: %s", format)
-	if len(args) > 0 {
-		msg = fmt.Sprintf(msg, args...)
-	}
-
-	log.Println(msg)
+func init() {
+	GologgerInstance = &gologger.Logger{}
+	GologgerInstance.SetMaxLevel(levels.LevelInfo)
+	GologgerInstance.SetFormatter(formatter.NewCLI(false))
+	GologgerInstance.SetWriter(writer.NewCLI())
 }
