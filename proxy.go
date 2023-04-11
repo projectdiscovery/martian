@@ -43,7 +43,10 @@ var (
 	errWinWsa                 = errors.New("windows wsarecv/wsasend")
 )
 
-var noop = Noop("martian")
+var (
+	noop                   = Noop("martian")
+	DefaultLingerTimeinSec = 3
+)
 
 func isCloseable(err error) bool {
 	if err == nil {
@@ -283,6 +286,11 @@ func (p *Proxy) handleLoop(conn net.Conn) {
 	}
 
 	brw := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
+	if tcpConn, ok := conn.(*net.TCPConn); ok {
+		if err := tcpConn.SetLinger(DefaultLingerTimeinSec); err != nil {
+			log.Debugf("martian: failed to set linger on connection: %v", err)
+		}
+	}
 
 	s, err := newSession(conn, brw)
 	if err != nil {
