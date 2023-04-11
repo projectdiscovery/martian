@@ -706,6 +706,9 @@ func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error
 		res.Close = false
 	}
 
+	if res.Request.Method == http.MethodConnect {
+		res.ContentLength = -1
+	}
 	err = res.Write(brw)
 	if err != nil {
 		log.Errorf("martian: got error while writing response back to client: %v", err)
