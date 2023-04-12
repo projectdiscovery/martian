@@ -469,9 +469,9 @@ func (p *Proxy) handleConnectRequest(ctx *Context, req *http.Request, session *S
 			nconn = tlsconn
 			// If the original connection is a traffic shaped connection, wrap the tls
 			// connection inside a traffic shaped connection too.
-			if ptsconn, ok := conn.(*trafficshape.Conn); ok {
-				nconn = ptsconn.Listener.GetTrafficShapedConn(tlsconn)
-			}
+			// if ptsconn, ok := conn.(*trafficshape.Conn); ok {
+			// 	nconn = ptsconn.Listener.GetTrafficShapedConn(tlsconn)
+			// }
 			brw.Writer.Reset(nconn)
 			brw.Reader.Reset(nconn)
 			return p.handle(ctx, nconn, brw)
@@ -626,6 +626,20 @@ func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error
 	}
 	defer res.Body.Close()
 
+	// Note: documentation on handling chunked encoding is at Notes.md
+	wasChunked := false
+	if chunked(res.TransferEncoding) {
+		bin, err := io.ReadAll(res.Body)
+		if err != nil && err != io.EOF {
+			log.Errorf("martian: failed to read chunked response got %v", err)
+		}
+		// switch to content length
+		res.TransferEncoding = nil
+		res.ContentLength = int64(len(bin))
+		res.Body = io.NopCloser(bytes.NewReader(bin))
+		wasChunked = true
+	}
+
 	// set request to original request manually, res.Request may be changed in transport.
 	// see https://github.com/projectdiscovery/martian/issues/298
 	res.Request = req
@@ -685,6 +699,16 @@ func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error
 	// 	}
 	// }
 
+	// if original response was a chunked encoding preserve it
+	if wasChunked {
+		res.ContentLength = -1
+		res.TransferEncoding = []string{"chunked"}
+		res.Close = false
+	}
+
+	if res.Request.Method == http.MethodConnect {
+		res.ContentLength = -1
+	}
 	err = res.Write(brw)
 	if err != nil {
 		log.Errorf("martian: got error while writing response back to client: %v", err)
@@ -705,6 +729,9 @@ func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error
 	}
 	return closing
 }
+
+// Checks whether chunked is part of the encodings stack. (taken from std lib)
+func chunked(te []string) bool { return len(te) > 0 && te[0] == "chunked" }
 
 // A peekedConn subverts the net.Conn.Read implementation, primarily so that
 // sniffed bytes can be transparently prepended.

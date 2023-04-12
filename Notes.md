@@ -21,3 +21,18 @@ https://gosamples.dev/broken-pipe/
 
 >Note: ^ Errors are hidden by default and can be logged when `log.ShowHidden = true`
 
+
+### Malformed Chunked Encoding
+
+According to RFC other widely known implementations of http proxy. `Transfer-Encoding` is considered as Hop-by-Hop header which means it is totally upto proxy implementation how to implement it. `httputil.ReverseProxy` simply strips `Transfer-Encoding` and sends a normal CL based response. If http proxy decides to implement transfer-encoding there are two choices read and buffer x chunks from server and stream response to client **or** read all resp.Body in buffer/memory and then write/stream. 
+
+we at @projectdiscovery will be sticking with reading all response body at once and keeping `Transfer-Encoding`. since dsl variables need body to evalutate expressions and it is accepted that we load resp body in memory in `proxify` . http std lib internally handles `chunked body` so no need to handle it explicitly, while writing to conn using `res.Write` std lib peeks body content and writes body in appropriate format (i.e chunked). adding/using `httputil.NewChunkedWriter` causes nested/malformed chunks.
+
+Currently martian internally converts transfer-encoding to non-chunked (i.e CL format) as soon as it receives http.Response after all Modifiers are executed at the time of writing to connection it is converted back to Transfer-Encoding. this avoids all errors caused by reading chunked body twice (cause for malformed encoding)
+
+```
+Ref:
+https://github.com/golang/go/blob/master/src/net/http/httputil/reverseproxy.go
+https://stackoverflow.com/questions/29486086/how-http2-http1-1-proxy-handle-the-transfer-encoding
+https://github.com/chimurai/http-proxy-middleware/issues/324
+```
