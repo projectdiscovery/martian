@@ -613,9 +613,10 @@ func (p *Proxy) handle(ctx *Context, conn net.Conn, brw *bufio.ReadWriter) error
 		log.Errorf("martian: error modifying request: %v", err)
 		proxyutil.Warning(req.Header, err)
 	}
-	// if session.Hijacked() {
-	// 	return nil
-	// }
+	if session.Hijacked() {
+		// when hijacked, return io.EOF to exit from infinite read loop
+		return io.EOF
+	}
 
 	// perform the HTTP roundtrip
 	res, err := p.roundTrip(ctx, req)
