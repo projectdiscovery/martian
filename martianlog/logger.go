@@ -51,7 +51,7 @@ func init() {
 func NewLogger() *Logger {
 	return &Logger{
 		log: func(line string) {
-			log.Infof(line)
+			log.Infof("%s", line)
 		},
 	}
 }

@@ -89,7 +89,7 @@ func TestModifyRequest(t *testing.T) {
 	}
 
 	if got, want := len(hreq.QueryString), 1; got != want {
-		t.Fatalf("len(hreq.QueryString): got %d, want %q", got, want)
+		t.Fatalf("len(hreq.QueryString): got %d, want %d", got, want)
 	}
 
 	qs := hreq.QueryString[0]
