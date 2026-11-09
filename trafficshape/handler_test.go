@@ -249,7 +249,7 @@ func TestHandlerActions(t *testing.T) {
 		tsl.Shapes.M["http://example/example"].RLock()
 		defer tsl.Shapes.M["http://example/example"].RUnlock()
 		if same, errStr := compareActions(tsl.Shapes.M["http://example/example"].Shape.Actions, tc.actions); !same {
-			t.Errorf(errStr)
+			t.Error(errStr)
 		}
 		if modifiedTime := tsl.Shapes.LastModifiedTime; modifiedTime.Before(startTime) {
 			t.Errorf("tc.%d modified time is before start time; should be after", i+1)
